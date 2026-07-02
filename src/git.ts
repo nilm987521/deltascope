@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import type {
+  BranchCommit,
   CommitDiff,
   Merge,
   MergeCommit,
@@ -45,4 +46,11 @@ export function listMergeCommits(
 
 export function commitDiff(repo: string, sha: string): Promise<CommitDiff> {
   return invoke<CommitDiff>("commit_diff", { repo, sha });
+}
+
+export function listBranchCommits(
+  repo: string,
+  branch: string,
+): Promise<BranchCommit[]> {
+  return invoke<BranchCommit[]>("list_branch_commits", { repo, branch });
 }

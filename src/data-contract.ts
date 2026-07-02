@@ -31,6 +31,17 @@ export interface MergeCommit {
   files: number; // files touched
 }
 
+/** One commit on a branch's first-parent line (git log <branch> --first-parent). */
+export interface BranchCommit {
+  hash: string; // full SHA (%H) — expand key for merges
+  short: string; // %h
+  dateIso: string; // %cI
+  author: string; // %an
+  subject: string; // %s
+  isMerge: boolean; // more than one parent
+  branch: string; // source branch for merges; "" for regular commits
+}
+
 /** One line of a unified diff, resolved to old/new line numbers. */
 export interface DiffLine {
   kind: "hunk" | "add" | "del" | "context";
