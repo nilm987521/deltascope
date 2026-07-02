@@ -6,6 +6,7 @@ import {
   countMergeCommits,
   defaultBranch,
   listBranches,
+  listBranchCommits,
   listMergeCommits,
   listMerges,
   pickRepo,
@@ -13,6 +14,7 @@ import {
 import { openPath } from "./sys";
 import type { CommitDiff } from "./data-contract";
 import {
+  buildBranchRows,
   buildRows,
   toContained,
   type BuiltData,
@@ -59,6 +61,8 @@ export default function App() {
   const [data, setData] = useState<BuiltData>(EMPTY);
   const [branches, setBranches] = useState<string[]>([]);
   const [target, setTarget] = useState("");
+  const [viewMode, setViewMode] = useState<"merge" | "branch">("merge");
+  const [viewBranch, setViewBranch] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -140,6 +144,41 @@ export default function App() {
     [setFlashMsg],
   );
 
+  const loadBranch = useCallback(
+    async (repo: string, branch: string) => {
+      const gen = ++loadGen.current;
+      setLoading(true);
+      try {
+        const commits = await listBranchCommits(repo, branch);
+        const built = buildBranchRows(commits);
+        setData(built);
+        setSel(null);
+        setContained({});
+        setCounts({});
+        setDiffCommit(null);
+        setDiffData(null);
+        // brought-in counts for the merge rows only
+        const mergeHashes = built.rows
+          .filter((r) => r.isMerge)
+          .map((r) => r.id);
+        if (mergeHashes.length) {
+          countMergeCommits(repo, mergeHashes)
+            .then((list) => {
+              if (gen !== loadGen.current) return;
+              setCounts(Object.fromEntries(list.map((c) => [c.hash, c.count])));
+            })
+            .catch(() => {});
+        }
+      } catch (e) {
+        setData(EMPTY);
+        setFlashMsg(String(e), true);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setFlashMsg],
+  );
+
   const onPick = useCallback(async () => {
     try {
       const dir = await pickRepo();
@@ -166,6 +205,34 @@ export default function App() {
       await load(repoPath, v); // range changes → re-fetch
     },
     [repoPath, load],
+  );
+
+  const switchMode = useCallback(
+    (mode: "merge" | "branch") => {
+      if (mode === viewMode || !repoPath) {
+        setViewMode(mode);
+        return;
+      }
+      setViewMode(mode);
+      setType("all");
+      setBranch("all");
+      if (mode === "branch") {
+        const b = (viewBranch || target || branches[0] || "").trim();
+        setViewBranch(b);
+        if (b) loadBranch(repoPath, b);
+      } else {
+        load(repoPath, target);
+      }
+    },
+    [viewMode, repoPath, viewBranch, target, branches, loadBranch, load],
+  );
+
+  const onViewBranch = useCallback(
+    (b: string) => {
+      setViewBranch(b);
+      if (repoPath) loadBranch(repoPath, b);
+    },
+    [repoPath, loadBranch],
   );
 
   const onToggle = useCallback(
@@ -223,6 +290,19 @@ export default function App() {
       }
     },
     [repoPath, setFlashMsg],
+  );
+
+  const openCommitDiff = useCallback(
+    (row: Row) =>
+      openDiff({
+        hash: row.hash,
+        msg: row.title,
+        author: row.author ?? "",
+        when: `${row.dateLabel} ${row.timeLabel}`,
+        add: 0,
+        del: 0,
+      }),
+    [openDiff],
   );
 
   // window controls (custom titlebar — decorations are off)
@@ -290,7 +370,10 @@ export default function App() {
   }, [branches, target]);
 
   const repoName = repoPath ? basename(repoPath) : "—";
-  const command = `git log --merges --first-parent --oneline ${target}`.trim();
+  const command =
+    viewMode === "branch"
+      ? `git log --first-parent ${viewBranch}`.trim()
+      : `git log --merges --first-parent --oneline ${target}`.trim();
   const branchCount = data.branchOptions.length - 1;
   const hasRepo = repoPath !== null;
 
@@ -335,26 +418,54 @@ export default function App() {
             ↻
           </span>
         </button>
+        <div className="seg mode-seg">
+          <button
+            className={"seg-btn" + (viewMode === "merge" ? " active" : "")}
+            onClick={() => switchMode("merge")}
+          >
+            合併檢視
+          </button>
+          <button
+            className={"seg-btn" + (viewMode === "branch" ? " active" : "")}
+            onClick={() => switchMode("branch")}
+          >
+            分支檢視
+          </button>
+        </div>
         {flash && (
           <span className={"flash" + (flash.err ? " err" : "")}>
             {flash.msg}
           </span>
         )}
         <div className="target-wrap">
-          <span className="lbl">目標分支</span>
+          <span className="lbl">{viewMode === "branch" ? "檢視分支" : "目標分支"}</span>
           <span className="arr">→</span>
           <select
             className="select"
-            value={target}
-            onChange={(e) => onTarget(e.target.value)}
+            value={viewMode === "branch" ? viewBranch : target}
+            onChange={(e) =>
+              viewMode === "branch"
+                ? onViewBranch(e.target.value)
+                : onTarget(e.target.value)
+            }
             disabled={!hasRepo}
           >
-            {targetOptions.length === 0 && <option value="">—</option>}
-            {targetOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
+            {viewMode === "branch" ? (
+              branches.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))
+            ) : (
+              <>
+                {targetOptions.length === 0 && <option value="">—</option>}
+                {targetOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </>
+            )}
           </select>
         </div>
       </div>
@@ -370,37 +481,41 @@ export default function App() {
             placeholder="搜尋分支、訊息、作者、hash…"
           />
         </div>
-        <div className="seg">
-          <button
-            className={"seg-btn" + (type === "all" ? " active" : "")}
-            onClick={() => setType("all")}
+        {viewMode === "merge" && (
+          <div className="seg">
+            <button
+              className={"seg-btn" + (type === "all" ? " active" : "")}
+              onClick={() => setType("all")}
+            >
+              全部
+            </button>
+            <button
+              className={"seg-btn" + (type === "feature" ? " active" : "")}
+              onClick={() => setType("feature")}
+            >
+              feature
+            </button>
+            <button
+              className={"seg-btn" + (type === "hotfix" ? " active" : "")}
+              onClick={() => setType("hotfix")}
+            >
+              hotfix
+            </button>
+          </div>
+        )}
+        {viewMode === "merge" && (
+          <select
+            className="select-sm select-branch"
+            value={branch}
+            onChange={(e) => setBranch(e.target.value)}
           >
-            全部
-          </button>
-          <button
-            className={"seg-btn" + (type === "feature" ? " active" : "")}
-            onClick={() => setType("feature")}
-          >
-            feature
-          </button>
-          <button
-            className={"seg-btn" + (type === "hotfix" ? " active" : "")}
-            onClick={() => setType("hotfix")}
-          >
-            hotfix
-          </button>
-        </div>
-        <select
-          className="select-sm select-branch"
-          value={branch}
-          onChange={(e) => setBranch(e.target.value)}
-        >
-          {data.branchOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+            {data.branchOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           className="select-sm"
           value={date}
@@ -475,30 +590,38 @@ export default function App() {
                 >
                   <div
                     className={"row" + (isSel ? " sel" : "")}
-                    onClick={() => onToggle(c)}
+                    onClick={() => (c.isMerge ? onToggle(c) : openCommitDiff(c))}
                   >
                     <div className="node-col">
                       <div className="rail" />
                       <div className="node" style={{ background: c.node }} />
                     </div>
                     <div className="row-body">
-                      <span className="caret">{isSel ? "▾" : "▸"}</span>
+                      <span className="caret">
+                        {c.isMerge ? (isSel ? "▾" : "▸") : "●"}
+                      </span>
                       <span className="hash">{c.hash}</span>
-                      <span className="tag" style={c.tagStyle}>
-                        {c.branchShort}
-                      </span>
+                      {c.isMerge && c.branchShort ? (
+                        <span className="tag" style={c.tagStyle}>
+                          {c.branchShort}
+                        </span>
+                      ) : (
+                        <span className="row-author">◍ {c.author}</span>
+                      )}
                       <span className="title">{c.title}</span>
-                      <span
-                        className={"commit-count" + (countKnown ? "" : " dim")}
-                      >
-                        {countKnown ? `${count} commits` : "· commits"}
-                      </span>
+                      {c.isMerge && (
+                        <span
+                          className={"commit-count" + (countKnown ? "" : " dim")}
+                        >
+                          {countKnown ? `${count} commits` : "· commits"}
+                        </span>
+                      )}
                       <span className="datetime">
                         {c.dateLabel} {c.timeLabel}
                       </span>
                     </div>
                   </div>
-                  {isSel && (
+                  {isSel && c.isMerge && (
                     <div className="expand">
                       <div className="node-col">
                         <div className="rail" />
