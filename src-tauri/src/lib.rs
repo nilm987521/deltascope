@@ -13,6 +13,7 @@ pub fn run() {
             git::count_merge_commits,
             git::list_merge_commits,
             git::commit_diff,
+            git::list_branch_commits,
             sys::open_path,
         ])
         .run(tauri::generate_context!())

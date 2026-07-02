@@ -40,6 +40,18 @@ pub struct MergeCommit {
     pub files: u32, // files touched
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BranchCommit {
+    pub hash: String,     // full SHA (%H) — expand key for merges
+    pub short: String,    // %h
+    pub date_iso: String, // %cI
+    pub author: String,   // %an
+    pub subject: String,  // %s
+    pub is_merge: bool,   // %P has more than one parent
+    pub branch: String,   // parse_branch(subject) for merges; "" otherwise
+}
+
 /// One line of a unified diff, already resolved to old/new line numbers.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -204,6 +216,40 @@ pub fn list_merge_commits(repo: String, merge: String) -> Result<Vec<MergeCommit
             c.add += a.and_then(|s| s.parse::<u32>().ok()).unwrap_or(0);
             c.del += d.and_then(|s| s.parse::<u32>().ok()).unwrap_or(0);
         }
+    }
+    Ok(commits)
+}
+
+/// List a branch's own commits along its first-parent line (git log <branch>
+/// --first-parent). Regular commits and merge commits both appear; is_merge
+/// marks the merges, which the UI lets you expand via list_merge_commits.
+#[tauri::command]
+pub fn list_branch_commits(repo: String, branch: String) -> Result<Vec<BranchCommit>, String> {
+    // %P is the space-separated parent list; more than one parent ⇒ a merge.
+    let fmt = format!("--pretty=format:%H{US}%h{US}%cI{US}%an{US}%P{US}%s");
+    let out = run_git(&repo, &["log", "--first-parent", &fmt, &branch])?;
+    let mut commits = Vec::new();
+    for line in out.lines() {
+        let f: Vec<&str> = line.splitn(6, US).collect();
+        if f.len() < 6 {
+            continue;
+        }
+        let is_merge = f[4].split_whitespace().count() > 1;
+        let subject = f[5].to_string();
+        let branch_name = if is_merge {
+            parse_branch(&subject)
+        } else {
+            String::new()
+        };
+        commits.push(BranchCommit {
+            hash: f[0].to_string(),
+            short: f[1].to_string(),
+            date_iso: f[2].to_string(),
+            author: f[3].to_string(),
+            is_merge,
+            branch: branch_name,
+            subject,
+        });
     }
     Ok(commits)
 }
@@ -493,6 +539,16 @@ index 000..333
         assert_eq!(counts.len(), 1);
         assert_eq!(counts[0].hash, m.hash);
         assert_eq!(counts[0].count, 1);
+
+        // single-branch view: main's first-parent line is [merge, init]
+        let bcs = list_branch_commits(repo.clone(), "main".to_string()).unwrap();
+        assert_eq!(bcs.len(), 2, "first-parent main: merge + init");
+        assert!(bcs[0].is_merge, "newest is the merge");
+        assert_eq!(bcs[0].hash, m.hash);
+        assert_eq!(bcs[0].branch, "feature/demo");
+        assert!(!bcs[1].is_merge, "root commit is not a merge");
+        assert_eq!(bcs[1].branch, "");
+        assert_eq!(bcs[1].subject, "init");
 
         // Guard the wire contract: JSON keys must match the frontend's data-contract.ts.
         let json = serde_json::to_string(m).unwrap();
