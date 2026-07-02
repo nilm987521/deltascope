@@ -1,6 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { Merge, MergeCommit, MergeCount } from "./data-contract";
+import type {
+  CommitDiff,
+  Merge,
+  MergeCommit,
+  MergeCount,
+} from "./data-contract";
 
 /** Open the system folder picker; returns the chosen path or null. */
 export async function pickRepo(): Promise<string | null> {
@@ -36,4 +41,8 @@ export function listMergeCommits(
   merge: string,
 ): Promise<MergeCommit[]> {
   return invoke<MergeCommit[]>("list_merge_commits", { repo, merge });
+}
+
+export function commitDiff(repo: string, sha: string): Promise<CommitDiff> {
+  return invoke<CommitDiff>("commit_diff", { repo, sha });
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
+  commitDiff,
   countMergeCommits,
   defaultBranch,
   listBranches,
@@ -9,6 +10,8 @@ import {
   listMerges,
   pickRepo,
 } from "./git";
+import { openPath } from "./sys";
+import type { CommitDiff } from "./data-contract";
 import {
   buildRows,
   toContained,
@@ -17,6 +20,8 @@ import {
   type Option,
   type Row,
 } from "./rows";
+
+const MINUS = "−"; // − : matches the design's deletion label glyph
 
 type TypeFilter = "all" | "feature" | "hotfix";
 type DateFilter = "all" | "7d" | "30d" | "90d";
@@ -73,6 +78,12 @@ export default function App() {
     {},
   );
 
+  // diff view — overlays the list when a contained commit is opened
+  const [diffCommit, setDiffCommit] = useState<ContainedCommit | null>(null);
+  const [diffData, setDiffData] = useState<CommitDiff | null>(null);
+  const [diffFile, setDiffFile] = useState(0);
+  const [diffLoading, setDiffLoading] = useState(false);
+
   // flash message
   const [flash, setFlash] = useState<{ msg: string; err: boolean } | null>(
     null,
@@ -107,6 +118,8 @@ export default function App() {
         setSel(null);
         setContained({});
         setCounts({});
+        setDiffCommit(null); // close any open diff — it belongs to the old range
+        setDiffData(null);
         // Fill in per-merge commit counts in the background — the list is already visible.
         countMergeCommits(
           repo,
@@ -173,6 +186,43 @@ export default function App() {
       }
     },
     [sel, contained, repoPath, setFlashMsg],
+  );
+
+  const openDiff = useCallback(
+    async (cc: ContainedCommit) => {
+      if (!repoPath) return;
+      setDiffCommit(cc);
+      setDiffData(null);
+      setDiffFile(0);
+      setDiffLoading(true);
+      try {
+        const d = await commitDiff(repoPath, cc.hash);
+        setDiffData(d);
+      } catch (e) {
+        setFlashMsg(String(e), true);
+        setDiffCommit(null); // couldn't load — fall back to the list
+      } finally {
+        setDiffLoading(false);
+      }
+    },
+    [repoPath, setFlashMsg],
+  );
+
+  const closeDiff = useCallback(() => {
+    setDiffCommit(null);
+    setDiffData(null);
+  }, []);
+
+  const openFile = useCallback(
+    async (path: string) => {
+      if (!repoPath) return;
+      try {
+        await openPath(repoPath, path);
+      } catch (e) {
+        setFlashMsg(String(e), true);
+      }
+    },
+    [repoPath, setFlashMsg],
   );
 
   // window controls (custom titlebar — decorations are off)
@@ -368,6 +418,7 @@ export default function App() {
       </div>
 
       {/* list */}
+      <div className="list-region">
       <div className="list" ref={listRef}>
         {!hasRepo ? (
           <div className="empty">
@@ -474,11 +525,27 @@ export default function App() {
                             style={{ borderColor: c.node }}
                           >
                             {cc.map((x, i) => (
-                              <div className="cc-row" key={x.hash + ":" + i}>
+                              <div
+                                className="cc-row"
+                                key={x.hash + ":" + i}
+                                title="檢視程式碼異動"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDiff(x);
+                                }}
+                              >
                                 <span className="cc-hash">{x.hash}</span>
                                 <span className="cc-msg">{x.msg}</span>
                                 <span className="cc-author">◍ {x.author}</span>
                                 <span className="cc-when">· {x.when}</span>
+                                <span className="cc-stats">
+                                  <span className="cc-add">+{x.add}</span>
+                                  <span className="cc-del">
+                                    {MINUS}
+                                    {x.del}
+                                  </span>
+                                  <span className="cc-chev">›</span>
+                                </span>
                               </div>
                             ))}
                           </div>
@@ -504,6 +571,121 @@ export default function App() {
             })}
           </div>
         )}
+      </div>
+
+      {diffCommit && (
+        <div className="diff-overlay">
+          {/* diff header */}
+          <div className="diff-header">
+            <button className="diff-back" onClick={closeDiff}>
+              ← 返回清單
+            </button>
+            <span className="diff-hash">{diffCommit.hash}</span>
+            <span className="diff-msg">{diffCommit.msg}</span>
+            <span className="diff-author">◍ {diffCommit.author}</span>
+            <span className="diff-when">{diffCommit.when}</span>
+            <div className="diff-stats">
+              {diffData ? (
+                <>
+                  <span className="dh-files">
+                    {diffData.files.length} 個檔案
+                  </span>
+                  <span className="dh-add">+{diffData.add}</span>
+                  <span className="dh-del">
+                    {MINUS}
+                    {diffData.del}
+                  </span>
+                </>
+              ) : (
+                <span className="dh-files">載入中…</span>
+              )}
+            </div>
+          </div>
+
+          {/* diff body */}
+          {diffLoading || !diffData ? (
+            <div className="diff-loading">
+              <span className="glyph">↻</span>
+              <span>載入程式碼異動…</span>
+            </div>
+          ) : diffData.files.length === 0 ? (
+            <div className="diff-loading">
+              <span className="glyph">∅</span>
+              <span>此 commit 沒有檔案異動（可能是合併節點）</span>
+            </div>
+          ) : (
+            (() => {
+              const fi = Math.min(diffFile, diffData.files.length - 1);
+              const sf = diffData.files[fi];
+              return (
+                <div className="diff-body">
+                  {/* file list */}
+                  <div className="file-list">
+                    <div className="file-list-label">變更的檔案</div>
+                    {diffData.files.map((f, i) => (
+                      <div
+                        className={"file-row" + (i === fi ? " sel" : "")}
+                        key={f.path + ":" + i}
+                        title="雙擊以系統預設程式開啟"
+                        onClick={() => setDiffFile(i)}
+                        onDoubleClick={() => openFile(f.path)}
+                      >
+                        <span className="fstatus" data-status={f.status}>
+                          {f.status}
+                        </span>
+                        <span className="fpath">{f.path}</span>
+                        <span className="fadd">+{f.add}</span>
+                        <span className="fdel">
+                          {MINUS}
+                          {f.del}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* diff pane */}
+                  <div className="diff-pane">
+                    <div className="diff-file-head">
+                      <span className="dfh-path">{sf.path}</span>
+                      <span className="dfh-add">+{sf.add}</span>
+                      <span className="dfh-del">
+                        {MINUS}
+                        {sf.del}
+                      </span>
+                    </div>
+                    {sf.binary ? (
+                      <div className="diff-binary">二進位檔案，無法顯示差異</div>
+                    ) : (
+                      <div className="diff-lines">
+                        {sf.lines.map((l, i) =>
+                          l.kind === "hunk" ? (
+                            <div className="hunk" key={i}>
+                              <span className="hunk-gutter" />
+                              <span className="hunk-text">{l.text}</span>
+                            </div>
+                          ) : (
+                            <div className={"dline " + l.kind} key={i}>
+                              <span className="ln-old">{l.oldNo ?? ""}</span>
+                              <span className="ln-new">{l.newNo ?? ""}</span>
+                              <span className="dtext">
+                                {(l.kind === "add"
+                                  ? "+ "
+                                  : l.kind === "del"
+                                    ? "- "
+                                    : "  ") + l.text}
+                              </span>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()
+          )}
+        </div>
+      )}
       </div>
 
       {/* status bar */}

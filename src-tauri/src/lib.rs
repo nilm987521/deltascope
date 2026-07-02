@@ -1,4 +1,5 @@
 mod git;
+mod sys;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -11,6 +12,8 @@ pub fn run() {
             git::list_merges,
             git::count_merge_commits,
             git::list_merge_commits,
+            git::commit_diff,
+            sys::open_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MergeScope");
