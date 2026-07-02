@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { Merge, MergeCommit } from "./data-contract";
+import type { BranchCommit, Merge, MergeCommit } from "./data-contract";
 
 /** Feature-branch hue pool, assigned in first-appearance order. hotfix is fixed to hue 45 (amber). */
 const HUES = [255, 150, 300, 195, 278, 110, 330, 212, 168, 318, 132, 238, 288, 182, 58, 222];
@@ -20,6 +20,8 @@ export interface Row {
   branchShort: string;
   target: string;
   isHotfix: boolean;
+  isMerge: boolean; // merge view: always true; branch view: per commit
+  author?: string; // branch-view regular commits show the author
   title: string;
   dateMs: number;
   dateLabel: string;
@@ -90,6 +92,7 @@ export function buildRows(merges: Merge[]): BuiltData {
       branchShort: branchShort || m.branch || "(unknown)",
       target: m.target,
       isHotfix: m.isHotfix,
+      isMerge: true,
       title: titleOf(branchShort) || m.subject,
       dateMs,
       dateLabel: `${d.getMonth() + 1}/${d.getDate()}`,
@@ -136,4 +139,61 @@ export function toContained(c: MergeCommit): ContainedCommit {
     add: c.add,
     del: c.del,
   };
+}
+
+/** Build display rows for a single branch's first-parent history. */
+export function buildBranchRows(commits: BranchCommit[]): BuiltData {
+  const hueByBranch: Record<string, number> = {};
+  let hi = 0;
+  let maxDateMs = 0;
+
+  const rows: Row[] = commits.map((c) => {
+    const d = new Date(c.dateIso);
+    const dateMs = d.getTime();
+    if (dateMs > maxDateMs) maxDateMs = dateMs;
+    const branchShort = c.branch
+      .replace(/^feature\//, "")
+      .replace(/^origin\//, "");
+    const isHotfix = c.branch === "hotfix";
+
+    let node: string;
+    let tagStyle: CSSProperties;
+    if (c.isMerge && c.branch) {
+      if (!(c.branch in hueByBranch)) {
+        hueByBranch[c.branch] = isHotfix ? 45 : HUES[hi++ % HUES.length];
+      }
+      const hue = hueByBranch[c.branch];
+      node = nodeColor(hue, isHotfix);
+      tagStyle = tagStyleFor(hue, isHotfix);
+    } else {
+      node = "oklch(0.55 0.02 160)"; // neutral rail node for regular commits
+      tagStyle = {};
+    }
+
+    return {
+      id: c.hash,
+      hash: c.short,
+      branch: c.branch,
+      branchShort: branchShort || c.branch,
+      target: "",
+      isHotfix,
+      isMerge: c.isMerge,
+      author: c.author,
+      title: c.isMerge ? titleOf(branchShort) || c.subject : c.subject,
+      dateMs,
+      dateLabel: `${d.getMonth() + 1}/${d.getDate()}`,
+      timeLabel: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+      node,
+      tagStyle,
+    };
+  });
+
+  const dateOptions: Option[] = [
+    { value: "all", label: "全部時間" },
+    { value: "7d", label: "近 7 天" },
+    { value: "30d", label: "近 30 天" },
+    { value: "90d", label: "近 90 天" },
+  ];
+
+  return { rows, branchOptions: [], dateOptions, maxDateMs, totalCount: rows.length };
 }
