@@ -9,6 +9,8 @@ export interface ContainedCommit {
   msg: string;
   author: string;
   when: string;
+  add: number;
+  del: number;
 }
 
 export interface Row {
@@ -131,5 +133,7 @@ export function toContained(c: MergeCommit): ContainedCommit {
     msg: c.subject,
     author: c.author,
     when: `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`,
+    add: c.add,
+    del: c.del,
   };
 }

@@ -20,10 +20,42 @@ export interface MergeCount {
   count: number;
 }
 
-/** A commit brought in by a merge (git log <merge>^1..<merge>^2). */
+/** A commit brought in by a merge (git log <merge>^1..<merge>^2 --numstat). */
 export interface MergeCommit {
   short: string; // %h
   subject: string; // %s
   author: string; // %an
   dateIso: string; // %cI
+  add: number; // lines added (numstat total)
+  del: number; // lines deleted (numstat total)
+  files: number; // files touched
+}
+
+/** One line of a unified diff, resolved to old/new line numbers. */
+export interface DiffLine {
+  kind: "hunk" | "add" | "del" | "context";
+  oldNo: number | null; // null when the line has no old-side number
+  newNo: number | null; // null when the line has no new-side number
+  text: string; // content without the +/-/space prefix; for "hunk", the @@ header
+}
+
+/** One file's changes within a commit (git show <sha>). */
+export interface FileDiff {
+  path: string;
+  status: string; // "A" | "M" | "D" | "R" | "C"
+  add: number;
+  del: number;
+  binary: boolean;
+  lines: DiffLine[];
+}
+
+/** A commit's full diff. */
+export interface CommitDiff {
+  short: string;
+  subject: string;
+  author: string;
+  dateIso: string;
+  add: number;
+  del: number;
+  files: FileDiff[];
 }
