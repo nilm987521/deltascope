@@ -115,6 +115,29 @@ input::placeholder {
 .titlebar .spacer {
   width: 60px;
 }
+.lang-switch {
+  display: flex;
+  gap: 2px;
+  margin-right: 10px;
+  -webkit-app-region: no-drag;
+}
+.lang-opt {
+  border: none;
+  background: transparent;
+  color: oklch(0.5 0.02 160);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  line-height: 1;
+}
+.lang-opt:hover {
+  background: oklch(0.3 0.01 160 / 0.4);
+}
+.lang-opt.on {
+  color: oklch(0.85 0.02 160);
+  background: oklch(0.3 0.01 160 / 0.7);
+}
 
 /* ---- toolbar ---- */
 .toolbar {

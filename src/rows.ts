@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { BranchCommit, MergeCommit } from "./data-contract";
+import type { TKey } from "./i18n/locales/zh-TW";
 
 /** Feature-branch hue pool, assigned in first-appearance order. hotfix is fixed to hue 45 (amber). */
 export const HUES = [
@@ -34,7 +35,7 @@ export interface Row {
 
 export interface Option {
   value: string;
-  label: string;
+  labelKey: TKey;
 }
 
 export interface BuiltData {
@@ -135,10 +136,10 @@ export function buildBranchRows(commits: BranchCommit[]): BuiltData {
   });
 
   const dateOptions: Option[] = [
-    { value: "all", label: "全部時間" },
-    { value: "7d", label: "近 7 天" },
-    { value: "30d", label: "近 30 天" },
-    { value: "90d", label: "近 90 天" },
+    { value: "all", labelKey: "filter.all" },
+    { value: "7d", labelKey: "filter.last7d" },
+    { value: "30d", labelKey: "filter.last30d" },
+    { value: "90d", labelKey: "filter.last90d" },
   ];
 
   return { rows, dateOptions, maxDateMs, totalCount: rows.length };
