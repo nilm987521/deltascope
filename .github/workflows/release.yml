@@ -123,5 +123,13 @@ jobs:
           name: DeltaScope ${{ github.ref_name }}
           draft: true
           prerelease: false
-          files: dist-bundles/**/*
+          # Only ship the actual installers — the build also emits raw
+          # binaries / icon / Info.plist that shouldn't be release assets.
+          files: |
+            dist-bundles/**/*.dmg
+            dist-bundles/**/*.exe
+            dist-bundles/**/*.msi
+            dist-bundles/**/*.deb
+            dist-bundles/**/*.rpm
+            dist-bundles/**/*.AppImage
           fail_on_unmatched_files: true
