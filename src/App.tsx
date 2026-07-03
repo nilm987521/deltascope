@@ -249,11 +249,15 @@ export default function App() {
     (row: Row) =>
       openDiff({
         hash: row.hash,
+        fullHash: row.id,
         msg: row.title,
         author: row.author ?? "",
         when: `${row.dateLabel} ${row.timeLabel}`,
         add: 0,
         del: 0,
+        isMerge: row.isMerge,
+        branchShort: row.branchShort,
+        target: row.target,
       }),
     [openDiff],
   );
