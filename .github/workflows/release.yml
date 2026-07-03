@@ -1,7 +1,21 @@
 name: Release
 
-# Build cross-platform bundles. Pushing a version tag (e.g. v0.1.0) publishes a
-# GitHub Release with the artifacts attached; a manual run just builds them.
+# Build cross-platform bundles, then publish them to ANOTHER repository's
+# Releases.
+#
+#   - Push a version tag (e.g. v0.1.0)  -> build + publish a draft Release
+#                                          in the target repo.
+#   - Manual run (workflow_dispatch)    -> build only; bundles are left as
+#                                          downloadable workflow artifacts.
+#
+# === One-time setup before the publish step works ===================
+#   1. Repo variable  TARGET_REPO       = "owner/other-repo"  (the destination)
+#   2. Repo secret    CROSS_REPO_TOKEN  = a token with `Contents: write` on the
+#                                         target repo (fine-grained PAT or a
+#                                         GitHub App token). The default
+#                                         GITHUB_TOKEN CANNOT reach other repos.
+# Set both under: Settings -> Secrets and variables -> Actions.
+# ====================================================================
 on:
   push:
     tags:
@@ -9,7 +23,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -70,25 +84,59 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      # Build only — no Release is created here (tagName left empty). The
+      # cross-repo publish happens in the separate `publish` job below.
       - name: Build the app
         id: tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # Only create/attach a GitHub Release when triggered by a version tag.
-          tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
-          releaseName: ${{ startsWith(github.ref, 'refs/tags/v') && format('DeltaScope {0}', github.ref_name) || '' }}
-          releaseDraft: true
-          prerelease: false
           args: ${{ matrix.args }}
 
-      # For manual (non-tag) runs there is no Release, so expose the bundles as
-      # downloadable workflow artifacts instead.
+      # Hand each leg's bundles to the publish job (and make them downloadable
+      # for manual runs). One artifact per matrix leg.
       - name: Upload bundles as artifacts
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/upload-artifact@v4
         with:
-          name: deltascope-${{ matrix.platform }}${{ matrix.rust-target && format('-{0}', matrix.rust-target) || '' }}
+          name: bundles-${{ matrix.platform }}${{ matrix.rust-target && format('-{0}', matrix.rust-target) || '' }}
           path: "${{ join(fromJSON(steps.tauri.outputs.artifactPaths), '\n') }}"
           if-no-files-found: warn
+
+  # Collect every leg's bundles and publish them to the TARGET repo's Releases.
+  # Only runs for version tags; manual runs stop after `build` (artifacts only).
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail early if target repo / token are not configured
+        env:
+          TARGET_REPO: ${{ vars.TARGET_REPO }}
+          CROSS_REPO_TOKEN: ${{ secrets.CROSS_REPO_TOKEN }}
+        run: |
+          if [ -z "$TARGET_REPO" ] || [ -z "$CROSS_REPO_TOKEN" ]; then
+            echo "::error::Set the TARGET_REPO variable and CROSS_REPO_TOKEN secret first (see workflow header)."
+            exit 1
+          fi
+
+      - name: Download all bundles
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-bundles
+          merge-multiple: true
+
+      - name: List downloaded files
+        run: find dist-bundles -type f | sort
+
+      - name: Publish Release to target repo
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: ${{ vars.TARGET_REPO }}
+          token: ${{ secrets.CROSS_REPO_TOKEN }}
+          tag_name: ${{ github.ref_name }}
+          name: DeltaScope ${{ github.ref_name }}
+          draft: true
+          prerelease: false
+          files: dist-bundles/**/*
+          fail_on_unmatched_files: true
