@@ -1165,7 +1165,7 @@ input::placeholder {
   cursor: pointer;
 }
 .mv-back:hover { background: oklch(0.28 0.01 160); }
-.mv-crumb { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.mv-crumb { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; font-size: 12px; }
 .mv-seg {
   color: oklch(0.6 0.02 160);
   cursor: pointer;
