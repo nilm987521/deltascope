@@ -533,6 +533,10 @@ input::placeholder {
   flex: 1;
   min-width: 0;
 }
+.cc-fill {
+  flex: 1;
+  min-width: 0;
+}
 .cc-stats {
   flex: none;
   display: flex;

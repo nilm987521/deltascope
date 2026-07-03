@@ -18,7 +18,7 @@ import ContainedRow from "./ContainedRow";
 import type { CommitDiff } from "./data-contract";
 import {
   buildBranchRows,
-  toContained,
+  buildContained,
   type BuiltData,
   type ContainedCommit,
   type Row,
@@ -201,7 +201,7 @@ export default function App() {
       setLoadingCommits((m) => ({ ...m, [fullHash]: true }));
       try {
         const commits = await listMergeCommits(repoPath, fullHash);
-        setContained((m) => ({ ...m, [fullHash]: commits.map(toContained) }));
+        setContained((m) => ({ ...m, [fullHash]: buildContained(commits) }));
       } catch (e) {
         setContained((m) => ({ ...m, [fullHash]: [] }));
         setFlashMsg(String(e), true);
@@ -271,6 +271,7 @@ export default function App() {
         isMerge: row.isMerge,
         branchShort: row.branchShort,
         target: row.target,
+        tagStyle: row.tagStyle,
       }),
     [openDiff],
   );

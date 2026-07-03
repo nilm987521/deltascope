@@ -18,6 +18,7 @@ export interface ContainedCommit {
   isMerge: boolean; // this contained commit is itself a merge
   branchShort: string; // source branch parsed from subject (merges only; "" otherwise)
   target: string; // "into X" target (merges only; "" otherwise)
+  tagStyle: CSSProperties; // per-branch pill colors (merges only; {} otherwise)
 }
 
 export interface Row {
@@ -100,7 +101,27 @@ export function toContained(c: MergeCommit): ContainedCommit {
     isMerge: c.isMerge,
     branchShort: c.isMerge ? mergeSourceOf(c.subject) : "",
     target: c.isMerge ? mergeTargetOf(c.subject) : "",
+    tagStyle: {},
   };
+}
+
+/** Map a merge's brought-in commits into contained rows, assigning each
+ *  nested merge a pill color by its source branch (first-appearance order,
+ *  mirroring buildBranchRows) so merge rows read as colored pills, not plain text. */
+export function buildContained(commits: MergeCommit[]): ContainedCommit[] {
+  const hueByBranch: Record<string, number> = {};
+  let hi = 0;
+  return commits.map((c) => {
+    const cc = toContained(c);
+    if (cc.isMerge && cc.branchShort) {
+      const isHotfix = cc.branchShort === "hotfix";
+      if (!(cc.branchShort in hueByBranch)) {
+        hueByBranch[cc.branchShort] = isHotfix ? 45 : HUES[hi++ % HUES.length];
+      }
+      cc.tagStyle = tagStyleFor(hueByBranch[cc.branchShort], isHotfix);
+    }
+    return cc;
+  });
 }
 
 /** Build display rows for a single branch's first-parent history. */

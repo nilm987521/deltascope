@@ -27,18 +27,21 @@ export default function ContainedRow({
       title={cc.isMerge ? t("mergeView.drill") : t("diff.viewCode")}
     >
       <span className="cc-hash">{cc.hash}</span>
-      <span className="cc-msg">{cc.msg}</span>
+      {cc.isMerge && cc.branchShort ? (
+        // A nested merge: the source→target pill stands in for the raw subject.
+        <>
+          <span className="tag" style={cc.tagStyle}>
+            {cc.target ? `${cc.branchShort} → ${cc.target}` : cc.branchShort}
+          </span>
+          <span className="cc-fill" />
+        </>
+      ) : (
+        <span className="cc-msg">{cc.msg}</span>
+      )}
       <span className="cc-author">◍ {cc.author}</span>
       <span className="cc-when">· {cc.when}</span>
       {cc.isMerge ? (
-        <>
-          {cc.branchShort && (
-            <span className="tag">
-              {cc.target ? `${cc.branchShort} → ${cc.target}` : cc.branchShort}
-            </span>
-          )}
-          <span className="cc-drill">{t("mergeView.drill")} ⤵</span>
-        </>
+        <span className="cc-drill">{t("mergeView.drill")} ⤵</span>
       ) : (
         <span className="cc-stats">
           <span className="cc-add">+{cc.add}</span>
