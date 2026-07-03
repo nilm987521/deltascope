@@ -21,6 +21,9 @@ export const zhTW = {
     deletedFiles: "已刪除檔案",
     renamedFiles: "已更名檔案",
     branchHistory: "分支歷史",
+    segBranch: "分支",
+    segRemove: "刪除",
+    segRename: "更名",
   },
   repo: {
     pick: "選擇 Git repository",

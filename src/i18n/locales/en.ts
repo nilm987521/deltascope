@@ -22,6 +22,9 @@ export const en: Dict = {
     deletedFiles: "Deleted files",
     renamedFiles: "Renamed files",
     branchHistory: "Branch history",
+    segBranch: "Branch",
+    segRemove: "Remove",
+    segRename: "Rename",
   },
   repo: {
     pick: "Select Git repository",

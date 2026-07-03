@@ -385,19 +385,19 @@ export default function App() {
             className={"seg-btn" + (view === "branches" ? " active" : "")}
             onClick={() => setView("branches")}
           >
-            Branch
+            {t("tabs.segBranch")}
           </button>
           <button
             className={"seg-btn" + (view === "deleted" ? " active" : "")}
             onClick={() => setView("deleted")}
           >
-            Remove
+            {t("tabs.segRemove")}
           </button>
           <button
             className={"seg-btn" + (view === "renamed" ? " active" : "")}
             onClick={() => setView("renamed")}
           >
-            Rename
+            {t("tabs.segRename")}
           </button>
         </div>
         {flash && (

@@ -22,6 +22,9 @@ export const ja: Dict = {
     deletedFiles: "削除されたファイル",
     renamedFiles: "名前変更されたファイル",
     branchHistory: "ブランチ履歴",
+    segBranch: "ブランチ",
+    segRemove: "削除",
+    segRename: "名前変更",
   },
   repo: {
     pick: "Git リポジトリを選択",
