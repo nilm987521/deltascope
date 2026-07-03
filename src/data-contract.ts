@@ -2,18 +2,6 @@
 // Types shared between frontend and backend. The Rust serde structs serialize to these
 // shapes (camelCase fields — see #[serde(rename_all = "camelCase")] in git.rs).
 
-/** One merge (a row of `git log --merges --first-parent`, plus the parsed source branch). */
-export interface Merge {
-  hash: string; // full SHA (%H)
-  short: string; // short SHA (%h)
-  dateIso: string; // commit date, ISO 8601 (%cI) — formatted on the frontend
-  refs: string; // ref names (%D), e.g. "origin/sit, sit"
-  subject: string; // merge subject (%s), e.g. "Merge branch 'feature/young' into sit"
-  branch: string; // source branch parsed from the subject, e.g. "feature/young" ("" if unparseable)
-  target: string; // the branch merged into, e.g. "sit"
-  isHotfix: boolean; // branch === "hotfix"
-}
-
 /** The number of commits a merge brought in (git rev-list --count <merge>^1..<merge>^2). */
 export interface MergeCount {
   hash: string; // full SHA
@@ -29,6 +17,17 @@ export interface MergeCommit {
   add: number; // lines added (numstat total)
   del: number; // lines deleted (numstat total)
   files: number; // files touched
+}
+
+/** One commit on a branch's first-parent line (git log <branch> --first-parent). */
+export interface BranchCommit {
+  hash: string; // full SHA (%H) — expand key for merges
+  short: string; // %h
+  dateIso: string; // %cI
+  author: string; // %an
+  subject: string; // %s
+  isMerge: boolean; // more than one parent
+  branch: string; // source branch for merges; "" for regular commits
 }
 
 /** One line of a unified diff, resolved to old/new line numbers. */
