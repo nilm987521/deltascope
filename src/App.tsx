@@ -619,14 +619,16 @@ export default function App() {
                       <span className="hash">{c.hash}</span>
                       {c.isMerge && c.branchShort ? (
                         <span className="tag" style={c.tagStyle}>
-                          {c.branchShort}
+                          {c.target
+                            ? `${c.branchShort} → ${c.target}`
+                            : c.branchShort}
                         </span>
                       ) : (
                         <span className="row-author">◍ {c.author}</span>
                       )}
-                      <span className="title">
-                        {c.isMerge && c.target ? c.target : c.title}
-                      </span>
+                      {/* empty for merges: the target now lives in the tag; keep
+                          the span so it still flex-fills and right-aligns the meta */}
+                      <span className="title">{c.isMerge ? "" : c.title}</span>
                       {c.isMerge && (
                         <span
                           className={"commit-count" + (countKnown ? "" : " dim")}
