@@ -95,7 +95,7 @@ export const ja: Dict = {
   },
   mergeView: {
     crumbRoot: "一覧",
-    open: "全画面表示",
+    open: "マージビューを開く",
     drill: "掘り下げる",
     emptyBrought: "このマージは新しいコミットを取り込んでいません",
     emptyHint: "(ソースブランチは既に統合済み、または fast-forward 記録の可能性があります)",

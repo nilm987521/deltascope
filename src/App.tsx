@@ -93,7 +93,7 @@ export default function App() {
   const [diffFile, setDiffFile] = useState(0);
   const [diffLoading, setDiffLoading] = useState(false);
 
-  // full-screen merge view: drill stack (empty = closed)
+  // merge view: drill stack (empty = closed)
   const [mergeStack, setMergeStack] = useState<MergeFrame[]>([]);
 
   // flash message
@@ -294,7 +294,7 @@ export default function App() {
     [],
   );
 
-  // open a top-level merge full-screen (double-click on a merge row)
+  // open a top-level merge in the merge view (double-click on a merge row)
   const openMergeView = useCallback(
     (row: Row) => {
       setMergeStack([frameFromRow(row)]);

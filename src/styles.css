@@ -1140,7 +1140,7 @@ input::placeholder {
   color: oklch(0.6 0.02 160);
 }
 
-/* ---- full-screen merge view ---- */
+/* ---- merge view (window-filling overlay) ---- */
 .merge-overlay {
   position: absolute;
   inset: 0;

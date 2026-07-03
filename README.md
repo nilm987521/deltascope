@@ -19,9 +19,9 @@ Traditional Chinese, English, and Japanese.
 
 ## Screenshots
 
-| Branch view | Full-screen merge view |
+| Branch view | A merge, expanded inline |
 | --- | --- |
-| ![Branch view — a branch's first-parent history with a merge expanded inline](screenshots/branch-view.png) | ![Full-screen merge view — the commits a merge brought in, with a breadcrumb](screenshots/merge-view.png) |
+| ![Branch view — a branch's first-parent history, each merge a colored pill](screenshots/branch-view.png) | ![A merge single-clicked to expand inline, peeking at the commits it brought in](screenshots/merge-view.png) |
 
 | Remove view | Rename view |
 | --- | --- |
@@ -55,7 +55,7 @@ restarts and otherwise follows the system language.
   Regular commits open a file diff. Merge commits can be:
   - **single-clicked** to expand inline and peek at the commits they brought in
     (`git log <merge>^1..<merge>^2`), or
-  - **double-clicked** to open a **full-screen merge view** — a dedicated,
+  - **double-clicked** to open the **merge view** — a dedicated,
     virtualized list of those commits, with a breadcrumb. A contained commit
     that is *itself* a merge drills one level deeper (`main › feature/x › temp`),
     with no depth limit. Opening a merge never lands on an empty diff (git emits
@@ -81,7 +81,7 @@ src/
   App.tsx               titlebar + toolbar + Branch view + shared state / filtering
   DeletedFilesView.tsx  the Remove view
   RenamedFilesView.tsx  the Rename view
-  MergeView.tsx         full-screen merge overlay (drill stack + breadcrumb, virtualized)
+  MergeView.tsx         merge-view overlay (fills the window; drill stack + breadcrumb, virtualized)
   ContainedRow.tsx      one contained-commit row (commit → diff, nested merge → drill)
   git.ts                invoke() wrappers + folder picker
   sys.ts                open-with-default-app wrapper
@@ -113,8 +113,8 @@ src-tauri/
   immediately and a background `count_merge_commits` call (cheap
   `git rev-list --count <h>^1..^2` per merge) populates the `N commits` column a
   moment later; the slot is dimmed until it arrives.
-- **Virtualized lists.** Every long list (branch history and the full-screen
-  merge view) is windowed with `@tanstack/react-virtual` (dynamic row height via
+- **Virtualized lists.** Every long list (branch history and the merge view) is
+  windowed with `@tanstack/react-virtual` (dynamic row height via
   `measureElement`, so inline expansion still works) — only visible rows are in
   the DOM, so it stays smooth at thousands of commits.
 - **Filtering is client-side.** History loads once per view; type/branch/date/

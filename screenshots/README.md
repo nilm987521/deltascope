@@ -4,12 +4,16 @@ The three README files (`README.md`, `README.zh-TW.md`, `README.ja.md`) referenc
 the images below. Drop PNGs here using these exact filenames and they'll appear
 in all three:
 
-| File | View to capture |
+| File | What it shows |
 | --- | --- |
-| `branch-view.png` | The **Branch** tab, ideally with one merge commit expanded inline. |
-| `merge-view.png`  | The full-screen **merge view** (double-click a merge), showing the breadcrumb. |
+| `branch-view.png` | The **Branch** tab, rows collapsed — a branch's first-parent history with each merge as a colored pill. |
+| `merge-view.png`  | The **Branch** tab with one merge single-clicked to expand inline, peeking at the commits it brought in. |
 | `remove-view.png` | The **Remove** tab, with a deleted file selected so the restore command shows. |
 | `rename-view.png` | The **Rename** tab, with a row selected so the similarity score / commands show. |
+
+The current shots don't include the full-screen (window-filling) merge view opened
+by double-clicking a merge; swap `merge-view.png` for one of it (breadcrumb visible)
+if you'd rather feature that instead of the inline expansion.
 
 Tips for clean captures:
 

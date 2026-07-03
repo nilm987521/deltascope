@@ -94,7 +94,7 @@ export const zhTW = {
   },
   mergeView: {
     crumbRoot: "清單",
-    open: "全螢幕檢視",
+    open: "開啟合併檢視",
     drill: "鑽入",
     emptyBrought: "此合併未帶進任何新 commit",
     emptyHint: "(來源分支可能早已併入,或為 fast-forward 記錄)",

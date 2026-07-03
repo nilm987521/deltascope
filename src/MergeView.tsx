@@ -10,7 +10,7 @@ export interface MergeFrame {
   name: string; // breadcrumb label (source branch, or short hash if unparsed)
 }
 
-/** Full-screen overlay for a merge's brought-in commits. Renders the top of the
+/** Window-filling overlay (the merge view) for a merge's brought-in commits. Renders the top of the
  *  drill stack; nested merges drill deeper, regular commits open their diff. */
 export default function MergeView({
   stack,
