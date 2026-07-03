@@ -17,6 +17,16 @@ The UI is a custom-chrome desktop window; the backend shells out to the system
 `git` CLI (no libgit2), and every user-facing string is available in
 Traditional Chinese, English, and Japanese.
 
+## Screenshots
+
+| Branch view | Full-screen merge view |
+| --- | --- |
+| ![Branch view — a branch's first-parent history with a merge expanded inline](screenshots/branch-view.png) | ![Full-screen merge view — the commits a merge brought in, with a breadcrumb](screenshots/merge-view.png) |
+
+| Remove view | Rename view |
+| --- | --- |
+| ![Remove view — every file deleted across history, with a restore command](screenshots/remove-view.png) | ![Rename view — every file moved or renamed, with a similarity score](screenshots/rename-view.png) |
+
 ## Stack
 
 - **Frontend:** React 18 + TypeScript (strict) + Vite

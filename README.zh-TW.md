@@ -12,6 +12,16 @@
 UI 是自訂視窗外框的桌面視窗;後端直接呼叫系統的 `git` CLI(不用 libgit2),
 而且所有面向使用者的字串都提供**繁體中文、英文、日文**三種語言。
 
+## 螢幕截圖
+
+| Branch(分支)檢視 | 全螢幕合併檢視 |
+| --- | --- |
+| ![Branch 檢視 —— 某分支的 first-parent 歷史,並就地展開一個 merge](screenshots/branch-view.png) | ![全螢幕合併檢視 —— 一個 merge 帶進來的 commit,附麵包屑](screenshots/merge-view.png) |
+
+| Remove(已刪除)檢視 | Rename(已更名)檢視 |
+| --- | --- |
+| ![Remove 檢視 —— 整段歷史中被刪除的每個檔案,附還原指令](screenshots/remove-view.png) | ![Rename 檢視 —— 整段歷史中被搬移或更名的每個檔案,附相似度分數](screenshots/rename-view.png) |
+
 ## 技術組成
 
 - **前端:** React 18 + TypeScript(strict)+ Vite
