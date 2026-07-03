@@ -3,6 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { listRenamedFiles } from "./git";
 import type { RenamedFile } from "./data-contract";
 import { HUES, tagStyleFor } from "./rows";
+import { useI18n } from "./i18n";
 
 type Mode = "list" | "commit";
 
@@ -37,6 +38,7 @@ interface Props {
 }
 
 export default function RenamedFilesView({ repoPath, reloadNonce, onFlash }: Props) {
+  const { t } = useI18n();
   const [files, setFiles] = useState<RenamedFile[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -147,7 +149,7 @@ export default function RenamedFilesView({ repoPath, reloadNonce, onFlash }: Pro
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      onFlash("已複製指令");
+      onFlash(t("common.copied"));
     } catch (e) {
       onFlash(String(e), true);
     }
@@ -172,7 +174,7 @@ export default function RenamedFilesView({ repoPath, reloadNonce, onFlash }: Pro
           <span className="ren-new-name">{nnew.name}</span>
         </span>
         <span className={"ren-badge" + (edited ? " edited" : "")}>
-          {edited ? `搬移+改動 ${f.score}%` : "純搬移"}
+          {edited ? t("renamed.moveEditBadge", { n: f.score }) : t("renamed.pureMove")}
         </span>
         {!opts?.grouped && f.branch && (
           <span className="tag" style={tagFor(f.branch)}>
@@ -198,7 +200,7 @@ export default function RenamedFilesView({ repoPath, reloadNonce, onFlash }: Pro
             className="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜尋新舊路徑、作者、hash…"
+            placeholder={t("renamed.searchPlaceholder")}
           />
         </div>
         <select
@@ -206,7 +208,7 @@ export default function RenamedFilesView({ repoPath, reloadNonce, onFlash }: Pro
           value={extFilter}
           onChange={(e) => setExtFilter(e.target.value)}
         >
-          <option value="all">全部類型（{extOptions.length}）</option>
+          <option value="all">{t("filter.allTypes", { n: extOptions.length })}</option>
           {extOptions.map((x) => (
             <option key={x} value={x}>
               {x}
@@ -218,7 +220,7 @@ export default function RenamedFilesView({ repoPath, reloadNonce, onFlash }: Pro
           value={branchFilter}
           onChange={(e) => setBranchFilter(e.target.value)}
         >
-          <option value="all">全部分支（{branchOptions.length}）</option>
+          <option value="all">{t("filter.allBranches", { n: branchOptions.length })}</option>
           {branchOptions.map((b) => (
             <option key={b} value={b}>
               {b}
@@ -230,17 +232,17 @@ export default function RenamedFilesView({ repoPath, reloadNonce, onFlash }: Pro
             className={"seg-btn" + (mode === "list" ? " active" : "")}
             onClick={() => setMode("list")}
           >
-            搬移+改動
+            {t("renamed.tabMoveEdit")}
           </button>
           <button
             className={"seg-btn" + (mode === "commit" ? " active" : "")}
             onClick={() => setMode("commit")}
           >
-            依 commit
+            {t("common.byCommit")}
           </button>
         </div>
         <div className="result-count">
-          已更名 <b>{filtered.length}</b> / {files.length} · commit {commitCount}
+          {t("renamed.renamedCountPre")} <b>{filtered.length}</b> / {files.length} · commit {commitCount}
         </div>
       </div>
 
@@ -251,7 +253,7 @@ export default function RenamedFilesView({ repoPath, reloadNonce, onFlash }: Pro
             {!hasRepo ? (
               <div className="empty">
                 <span className="glyph">⇄</span>
-                <span className="msg">選擇一個 Git repository 開始</span>
+                <span className="msg">{t("repo.pickStart")}</span>
               </div>
             ) : loading ? (
               <div className="empty">
@@ -261,15 +263,15 @@ export default function RenamedFilesView({ repoPath, reloadNonce, onFlash }: Pro
                 >
                   ↻
                 </span>
-                <span className="msg">讀取中…</span>
+                <span className="msg">{t("common.loading")}</span>
               </div>
             ) : filtered.length === 0 ? (
               <div className="empty">
                 <span className="glyph">∅</span>
                 <span className="msg">
                   {files.length === 0
-                    ? "此 repository 沒有更名/搬移過的檔案"
-                    : "沒有符合條件的檔案"}
+                    ? t("repo.noRenamed")
+                    : t("common.noMatch")}
                 </span>
               </div>
             ) : mode === "list" ? (
@@ -330,11 +332,11 @@ export default function RenamedFilesView({ repoPath, reloadNonce, onFlash }: Pro
             <aside className="del-detail">
               <div className="del-detail-top">
                 <span className="ren-detail-eyebrow">
-                  {isEdited(selected) ? "搬移 + 改動" : "純搬移"}
+                  {isEdited(selected) ? t("renamed.moveEditTitle") : t("renamed.pureMove")}
                 </span>
                 <button
                   className="del-detail-close"
-                  title="關閉"
+                  title={t("titlebar.close")}
                   onClick={() => setSel(null)}
                 >
                   ✕
@@ -342,44 +344,44 @@ export default function RenamedFilesView({ repoPath, reloadNonce, onFlash }: Pro
               </div>
 
               <div className="del-field">
-                <div className="del-field-label">原路徑</div>
+                <div className="del-field-label">{t("renamed.oldPath")}</div>
                 <div className="del-field-value ren-old">{selected.oldPath}</div>
               </div>
               <div className="del-field">
-                <div className="del-field-label">新路徑</div>
+                <div className="del-field-label">{t("renamed.newPath")}</div>
                 <div className="del-field-value">{selected.newPath}</div>
               </div>
               <div className="del-field">
-                <div className="del-field-label">相似度</div>
+                <div className="del-field-label">{t("renamed.similarity")}</div>
                 <div className="del-field-value">
                   {selected.score}%{" "}
-                  {isEdited(selected) ? "（內容也有變動）" : "（僅移動）"}
+                  {isEdited(selected) ? t("renamed.contentChanged") : t("renamed.moveOnly")}
                 </div>
               </div>
               <div className="del-field">
-                <div className="del-field-label">更名 commit</div>
+                <div className="del-field-label">{t("renamed.renameCommit")}</div>
                 <div className="del-field-value">
                   <span className="del-hash">{selected.short}</span>{" "}
                   {selected.subject}
                 </div>
               </div>
               <div className="del-field">
-                <div className="del-field-label">作者</div>
+                <div className="del-field-label">{t("common.author")}</div>
                 <div className="del-field-value">◍ {selected.author}</div>
               </div>
               <div className="del-field">
-                <div className="del-field-label">分支</div>
+                <div className="del-field-label">{t("common.branch")}</div>
                 <div className="del-field-value">{selected.branch || "—"}</div>
               </div>
               <div className="del-field">
-                <div className="del-field-label">時間</div>
+                <div className="del-field-label">{t("common.time")}</div>
                 <div className="del-field-value">
                   {whenLabel(selected.dateIso)}
                 </div>
               </div>
 
               <div className="del-field">
-                <div className="del-field-label">追蹤此檔案完整歷史</div>
+                <div className="del-field-label">{t("renamed.trackHistory")}</div>
                 <div className="del-cmd">
                   <code>git log --follow -- {selected.newPath}</code>
                   <button
@@ -388,19 +390,19 @@ export default function RenamedFilesView({ repoPath, reloadNonce, onFlash }: Pro
                       copy(`git log --follow -- ${selected.newPath}`)
                     }
                   >
-                    複製
+                    {t("common.copy")}
                   </button>
                 </div>
               </div>
               <div className="del-field">
-                <div className="del-field-label">檢視這次更名</div>
+                <div className="del-field-label">{t("renamed.viewRename")}</div>
                 <div className="del-cmd">
                   <code>git show {selected.short}</code>
                   <button
                     className="del-copy"
                     onClick={() => copy(`git show ${selected.short}`)}
                   >
-                    複製
+                    {t("common.copy")}
                   </button>
                 </div>
               </div>
