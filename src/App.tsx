@@ -21,6 +21,7 @@ import {
   type ContainedCommit,
   type Row,
 } from "./rows";
+import { useI18n, type Lang } from "./i18n";
 
 const MINUS = "−"; // − : matches the design's deletion label glyph
 
@@ -29,10 +30,10 @@ type DateFilter = "all" | "7d" | "30d" | "90d";
 const EMPTY: BuiltData = {
   rows: [],
   dateOptions: [
-    { value: "all", label: "全部時間" },
-    { value: "7d", label: "近 7 天" },
-    { value: "30d", label: "近 30 天" },
-    { value: "90d", label: "近 90 天" },
+    { value: "all", labelKey: "filter.all" },
+    { value: "7d", labelKey: "filter.last7d" },
+    { value: "30d", labelKey: "filter.last30d" },
+    { value: "90d", labelKey: "filter.last90d" },
   ],
   maxDateMs: 0,
   totalCount: 0,
@@ -53,6 +54,8 @@ function tildify(p: string): string {
 const basename = (p: string) => p.split("/").filter(Boolean).pop() || p;
 
 export default function App() {
+  const { lang, setLang, t } = useI18n();
+
   // repo / data
   const [repoPath, setRepoPath] = useState<string | null>(null);
   const [data, setData] = useState<BuiltData>(EMPTY);
@@ -174,7 +177,7 @@ export default function App() {
     } else {
       await loadBranch(repoPath, viewBranch);
     }
-    setFlashMsg("已重新讀取 · 剛剛");
+    setFlashMsg(t("status.reloaded"));
   }, [repoPath, view, viewBranch, loadBranch, setFlashMsg]);
 
   const onViewBranch = useCallback(
@@ -319,15 +322,19 @@ export default function App() {
       {/* titlebar */}
       <div className="titlebar" data-tauri-drag-region>
         <div className="dots">
-          <span className="dot r" title="關閉" onClick={() => win?.close()} />
+          <span
+            className="dot r"
+            title={t("titlebar.close")}
+            onClick={() => win?.close()}
+          />
           <span
             className="dot y"
-            title="最小化"
+            title={t("titlebar.minimize")}
             onClick={() => win?.minimize()}
           />
           <span
             className="dot g"
-            title="縮放"
+            title={t("titlebar.zoom")}
             onClick={() => win?.toggleMaximize()}
           />
         </div>
@@ -335,12 +342,23 @@ export default function App() {
         <span className="app-title">
           {repoName} —{" "}
           {view === "deleted"
-            ? "已刪除檔案"
+            ? t("tabs.deletedFiles")
             : view === "renamed"
-              ? "已更名檔案"
-              : "分支歷史"}
+              ? t("tabs.renamedFiles")
+              : t("tabs.branchHistory")}
         </span>
         <span className="spacer" />
+        <div className="lang-switch">
+          {(["zh-TW", "en", "ja"] as Lang[]).map((l) => (
+            <button
+              key={l}
+              className={"lang-opt" + (lang === l ? " on" : "")}
+              onClick={() => setLang(l)}
+            >
+              {l === "zh-TW" ? "繁" : l === "en" ? "EN" : "日"}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* toolbar */}
@@ -348,13 +366,13 @@ export default function App() {
         <button className="btn" onClick={onPick}>
           <span className="folder-ico" />
           <span className="path">
-            {repoPath ? tildify(repoPath) : "選擇 Git repository"}
+            {repoPath ? tildify(repoPath) : t("repo.pick")}
           </span>
           <span className="caret-dn">▾</span>
         </button>
         <button
           className="btn-icon"
-          title="重新整理"
+          title={t("titlebar.refresh")}
           onClick={onRefresh}
           disabled={!hasRepo}
         >
@@ -367,19 +385,19 @@ export default function App() {
             className={"seg-btn" + (view === "branches" ? " active" : "")}
             onClick={() => setView("branches")}
           >
-            Branch
+            {t("tabs.segBranch")}
           </button>
           <button
             className={"seg-btn" + (view === "deleted" ? " active" : "")}
             onClick={() => setView("deleted")}
           >
-            Remove
+            {t("tabs.segRemove")}
           </button>
           <button
             className={"seg-btn" + (view === "renamed" ? " active" : "")}
             onClick={() => setView("renamed")}
           >
-            Rename
+            {t("tabs.segRename")}
           </button>
         </div>
         {flash && (
@@ -389,7 +407,7 @@ export default function App() {
         )}
         {view === "branches" && (
           <div className="target-wrap">
-            <span className="lbl">檢視分支</span>
+            <span className="lbl">{t("branchView.toggle")}</span>
             <span className="arr">→</span>
             <select
               className="select"
@@ -417,7 +435,7 @@ export default function App() {
             className="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜尋分支、訊息、作者、hash…"
+            placeholder={t("mergeList.searchPlaceholder")}
           />
         </div>
         <select
@@ -427,12 +445,12 @@ export default function App() {
         >
           {data.dateOptions.map((o) => (
             <option key={o.value} value={o.value}>
-              {o.label}
+              {t(o.labelKey)}
             </option>
           ))}
         </select>
         <div className="result-count">
-          顯示 <b>{filtered.length}</b> / {data.totalCount}
+          {t("list.showing")} <b>{filtered.length}</b> / {data.totalCount}
         </div>
       </div>
 
@@ -442,10 +460,10 @@ export default function App() {
         {!hasRepo ? (
           <div className="empty">
             <span className="glyph">⑂</span>
-            <span className="msg">選擇一個 Git repository 開始</span>
+            <span className="msg">{t("repo.pickStart")}</span>
             <button className="btn pick" onClick={onPick}>
               <span className="folder-ico" />
-              <span className="path">選擇資料夾…</span>
+              <span className="path">{t("repo.pickFolder")}</span>
             </button>
           </div>
         ) : loading ? (
@@ -456,12 +474,12 @@ export default function App() {
             >
               ↻
             </span>
-            <span className="msg">讀取中…</span>
+            <span className="msg">{t("common.loading")}</span>
           </div>
         ) : filtered.length === 0 ? (
           <div className="empty">
             <span className="glyph">∅</span>
-            <span className="msg">沒有符合條件的 commit</span>
+            <span className="msg">{t("mergeList.empty")}</span>
           </div>
         ) : (
           <div
@@ -539,11 +557,13 @@ export default function App() {
                           <span style={{ color: c.node }}>└─</span>
                           {isLoadingCC ? (
                             <span className="expand-loading">
-                              載入內含 commit…
+                              {t("mergeList.loadingContained")}
                             </span>
                           ) : (
                             <>
-                              此合併帶進 <b>{cc?.length ?? 0}</b> 個 commit
+                              {t("mergeList.broughtInPre")}{" "}
+                              <b>{cc?.length ?? 0}</b>{" "}
+                              {t("mergeList.broughtInPost")}
                             </>
                           )}
                           <span className="range">
@@ -559,7 +579,7 @@ export default function App() {
                               <div
                                 className="cc-row"
                                 key={x.hash + ":" + i}
-                                title="檢視程式碼異動"
+                                title={t("diff.viewCode")}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   openDiff(x);
@@ -588,8 +608,7 @@ export default function App() {
                           >
                             <div className="cc-row">
                               <span className="cc-when">
-                                （此合併沒有第二父，或為 fast-forward —
-                                無內含 commit）
+                                {t("mergeList.noSecondParent")}
                               </span>
                             </div>
                           </div>
@@ -609,7 +628,7 @@ export default function App() {
           {/* diff header */}
           <div className="diff-header">
             <button className="diff-back" onClick={closeDiff}>
-              ← 返回清單
+              {t("diff.back")}
             </button>
             <span className="diff-hash">{diffCommit.hash}</span>
             <span className="diff-msg">{diffCommit.msg}</span>
@@ -619,7 +638,7 @@ export default function App() {
               {diffData ? (
                 <>
                   <span className="dh-files">
-                    {diffData.files.length} 個檔案
+                    {diffData.files.length} {t("diff.filesSuffix")}
                   </span>
                   <span className="dh-add">+{diffData.add}</span>
                   <span className="dh-del">
@@ -628,7 +647,7 @@ export default function App() {
                   </span>
                 </>
               ) : (
-                <span className="dh-files">載入中…</span>
+                <span className="dh-files">{t("common.loadingShort")}</span>
               )}
             </div>
           </div>
@@ -637,12 +656,12 @@ export default function App() {
           {diffLoading || !diffData ? (
             <div className="diff-loading">
               <span className="glyph">↻</span>
-              <span>載入程式碼異動…</span>
+              <span>{t("diff.loadingCode")}</span>
             </div>
           ) : diffData.files.length === 0 ? (
             <div className="diff-loading">
               <span className="glyph">∅</span>
-              <span>此 commit 沒有檔案異動（可能是合併節點）</span>
+              <span>{t("diff.noFileChanges")}</span>
             </div>
           ) : (
             (() => {
@@ -652,12 +671,14 @@ export default function App() {
                 <div className="diff-body">
                   {/* file list */}
                   <div className="file-list">
-                    <div className="file-list-label">變更的檔案</div>
+                    <div className="file-list-label">
+                      {t("diff.changedFiles")}
+                    </div>
                     {diffData.files.map((f, i) => (
                       <div
                         className={"file-row" + (i === fi ? " sel" : "")}
                         key={f.path + ":" + i}
-                        title="雙擊以系統預設程式開啟"
+                        title={t("diff.openDefault")}
                         onClick={() => setDiffFile(i)}
                         onDoubleClick={() => openFile(f.path)}
                       >
@@ -685,7 +706,7 @@ export default function App() {
                       </span>
                     </div>
                     {sf.binary ? (
-                      <div className="diff-binary">二進位檔案，無法顯示差異</div>
+                      <div className="diff-binary">{t("diff.binary")}</div>
                     ) : (
                       <div className="diff-lines">
                         {sf.lines.map((l, i) =>
