@@ -1,21 +1,16 @@
 name: Release
 
-# Build cross-platform bundles, then publish them to ANOTHER repository's
+# Build cross-platform bundles, then publish them to this repository's
 # Releases.
 #
 #   - Push a version tag (e.g. v0.1.0)  -> build + publish a draft Release
-#                                          in the target repo.
+#                                          in this repo.
 #   - Manual run (workflow_dispatch)    -> build only; bundles are left as
 #                                          downloadable workflow artifacts.
 #
-# === One-time setup before the publish step works ===================
-#   1. Repo variable  TARGET_REPO       = "owner/other-repo"  (the destination)
-#   2. Repo secret    CROSS_REPO_TOKEN  = a token with `Contents: write` on the
-#                                         target repo (fine-grained PAT or a
-#                                         GitHub App token). The default
-#                                         GITHUB_TOKEN CANNOT reach other repos.
-# Set both under: Settings -> Secrets and variables -> Actions.
-# ====================================================================
+# No extra setup needed: the publish step uses the built-in GITHUB_TOKEN,
+# which already has write access to this repo's Releases (granted via the
+# publish job's `permissions: contents: write`).
 on:
   push:
     tags:
@@ -103,23 +98,15 @@ jobs:
           path: "${{ join(fromJSON(steps.tauri.outputs.artifactPaths), '\n') }}"
           if-no-files-found: warn
 
-  # Collect every leg's bundles and publish them to the TARGET repo's Releases.
+  # Collect every leg's bundles and publish them to this repo's Releases.
   # Only runs for version tags; manual runs stop after `build` (artifacts only).
   publish:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the Release in this repo
     steps:
-      - name: Fail early if target repo / token are not configured
-        env:
-          TARGET_REPO: ${{ vars.TARGET_REPO }}
-          CROSS_REPO_TOKEN: ${{ secrets.CROSS_REPO_TOKEN }}
-        run: |
-          if [ -z "$TARGET_REPO" ] || [ -z "$CROSS_REPO_TOKEN" ]; then
-            echo "::error::Set the TARGET_REPO variable and CROSS_REPO_TOKEN secret first (see workflow header)."
-            exit 1
-          fi
-
       - name: Download all bundles
         uses: actions/download-artifact@v4
         with:
@@ -129,11 +116,9 @@ jobs:
       - name: List downloaded files
         run: find dist-bundles -type f | sort
 
-      - name: Publish Release to target repo
+      - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
-          repository: ${{ vars.TARGET_REPO }}
-          token: ${{ secrets.CROSS_REPO_TOKEN }}
           tag_name: ${{ github.ref_name }}
           name: DeltaScope ${{ github.ref_name }}
           draft: true
