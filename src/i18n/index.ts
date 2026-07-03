@@ -25,9 +25,10 @@ export function detectLang(): Lang {
     // localStorage 不可用時忽略,落到系統偵測
   }
   const sys = (navigator.language || "").toLowerCase();
-  if (sys.startsWith("zh")) return "zh-TW";
+  if (!sys) return "zh-TW"; // 完全偵測不到系統語言時,落到產品預設
+  if (sys.startsWith("zh")) return "zh-TW"; // zh-CN 等一律對應 zh-TW(目前無簡中字典,zh-TW 為基準)
   if (sys.startsWith("ja")) return "ja";
-  return "en";
+  return "en"; // 已知的非 CJK 語言採英文
 }
 
 // 依 "group.key" 取字典字串;缺字 fallback 到 zh-TW。
