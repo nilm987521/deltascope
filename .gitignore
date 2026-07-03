@@ -12,8 +12,9 @@ dist
 dist-ssr
 *.local
 
-# Re-include package.json (a global ~/.config/git/ignore rule excludes it)
+# Re-include manifest + lockfile (a global ~/.config/git/ignore rule excludes them)
 !package.json
+!package-lock.json
 
 # Editor directories and files
 .vscode/*
