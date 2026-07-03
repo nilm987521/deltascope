@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "MergeScope",
+  "productName": "DeltaScope",
   "version": "0.1.0",
-  "identifier": "com.daniel.mergescope",
+  "identifier": "com.daniel.deltascope",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "MergeScope",
+        "title": "DeltaScope",
         "width": 1300,
         "height": 840,
         "minWidth": 720,

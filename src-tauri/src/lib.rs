@@ -16,5 +16,5 @@ pub fn run() {
             sys::open_path,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running MergeScope");
+        .expect("error while running DeltaScope");
 }

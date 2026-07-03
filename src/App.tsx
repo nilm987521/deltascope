@@ -316,7 +316,7 @@ export default function App() {
             onClick={() => win?.toggleMaximize()}
           />
         </div>
-        <span className="app-name">MergeScope</span>
+        <span className="app-name">DeltaScope</span>
         <span className="app-title">{repoName} — 分支歷史</span>
         <span className="spacer" />
       </div>

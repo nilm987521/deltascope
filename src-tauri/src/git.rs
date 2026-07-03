@@ -431,7 +431,7 @@ index 000..333
     fn end_to_end_against_real_repo() {
         // unique temp dir (no external tempfile dep)
         let mut dir: PathBuf = std::env::temp_dir();
-        dir.push(format!("mergescope_test_{}", std::process::id()));
+        dir.push(format!("deltascope_test_{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let repo = dir.to_string_lossy().to_string();

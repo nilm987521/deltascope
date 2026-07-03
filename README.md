@@ -1,4 +1,4 @@
-# MergeScope — Git 合併歷史可視化
+# DeltaScope — Git 合併歷史可視化
 
 A small Tauri v2 desktop app that reads a local Git repository and renders
 `git log --merges --first-parent` (every merge on the mainline) as a readable
