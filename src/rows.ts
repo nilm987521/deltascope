@@ -2,7 +2,9 @@ import type { CSSProperties } from "react";
 import type { BranchCommit, MergeCommit } from "./data-contract";
 
 /** Feature-branch hue pool, assigned in first-appearance order. hotfix is fixed to hue 45 (amber). */
-const HUES = [255, 150, 300, 195, 278, 110, 330, 212, 168, 318, 132, 238, 288, 182, 58, 222];
+export const HUES = [
+  255, 150, 300, 195, 278, 110, 330, 212, 168, 318, 132, 238, 288, 182, 58, 222,
+];
 
 export interface ContainedCommit {
   hash: string;
@@ -57,7 +59,7 @@ export function mergeTargetOf(subject: string): string {
   return m ? m[1].replace(/^origin\//, "") : "";
 }
 
-function tagStyleFor(hue: number, isHotfix: boolean): CSSProperties {
+export function tagStyleFor(hue: number, isHotfix: boolean): CSSProperties {
   const c = isHotfix ? 0.09 : 0.05;
   const ct = isHotfix ? 0.14 : 0.11;
   const cb = isHotfix ? 0.1 : 0.07;

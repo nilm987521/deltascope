@@ -39,6 +39,36 @@ pub struct BranchCommit {
     pub branch: String,   // parse_branch(subject) for merges; "" otherwise
 }
 
+/// One file deletion found anywhere in history
+/// (git log --all --diff-filter=D --name-only). One entry per (deleting commit, path).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeletedFile {
+    pub path: String,     // full path git reported for the deletion
+    pub short: String,    // deleting commit %h
+    pub hash: String,     // deleting commit %H (for `git checkout <hash>^ -- <path>`)
+    pub author: String,   // %an
+    pub date_iso: String, // %cI
+    pub subject: String,  // deleting commit message %s
+    pub branch: String,   // %S source ref, cleaned to a short branch name ("" if none)
+}
+
+/// One file rename/move found anywhere in history
+/// (git log --all --diff-filter=R -M --name-status). One entry per (renaming commit, rename).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RenamedFile {
+    pub old_path: String, // path before the rename
+    pub new_path: String, // path after the rename
+    pub score: u32,       // rename similarity: 100 = pure move; <100 = moved + edited
+    pub short: String,    // renaming commit %h
+    pub hash: String,     // renaming commit %H
+    pub author: String,   // %an
+    pub date_iso: String, // %cI
+    pub subject: String,  // renaming commit message %s
+    pub branch: String,   // %S source ref, cleaned ("" if none)
+}
+
 /// One line of a unified diff, already resolved to old/new line numbers.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -207,6 +237,134 @@ pub fn list_branch_commits(repo: String, branch: String) -> Result<Vec<BranchCom
         });
     }
     Ok(commits)
+}
+
+/// Reduce a `%S` source ref ("refs/heads/feature/x", "refs/remotes/origin/main") to a
+/// short branch name ("feature/x", "main"). Non-ref values pass through trimmed.
+fn clean_source_ref(s: &str) -> String {
+    let s = s.trim();
+    let s = s.strip_prefix("refs/heads/").unwrap_or(s);
+    let s = s.strip_prefix("refs/remotes/").unwrap_or(s);
+    let s = s.strip_prefix("refs/tags/").unwrap_or(s);
+    s.strip_prefix("origin/").unwrap_or(s).to_string()
+}
+
+/// Every file deletion across all refs: `git log --all --source --diff-filter=D --name-only`.
+/// Each commit prints a US-joined metadata header, then the paths it deleted on their own
+/// lines. Merges show no diff by default, so they contribute nothing.
+#[tauri::command]
+pub fn list_deleted_files(repo: String) -> Result<Vec<DeletedFile>, String> {
+    let fmt = format!("--pretty=format:%H{US}%h{US}%S{US}%an{US}%cI{US}%s");
+    let out = run_git(
+        &repo,
+        &[
+            "log",
+            "--all",
+            "--source",
+            "--diff-filter=D",
+            "--name-only",
+            &fmt,
+        ],
+    )?;
+
+    let mut files: Vec<DeletedFile> = Vec::new();
+    // Rolling "current commit" context, updated on each header line.
+    let (mut hash, mut short, mut branch) = (String::new(), String::new(), String::new());
+    let (mut author, mut date_iso, mut subject) =
+        (String::new(), String::new(), String::new());
+
+    for line in out.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        if line.contains(US) {
+            let f: Vec<&str> = line.splitn(6, US).collect();
+            if f.len() < 6 {
+                continue;
+            }
+            hash = f[0].to_string();
+            short = f[1].to_string();
+            branch = clean_source_ref(f[2]);
+            author = f[3].to_string();
+            date_iso = f[4].to_string();
+            subject = f[5].to_string();
+        } else {
+            // a deleted path under the current commit
+            files.push(DeletedFile {
+                path: line.to_string(),
+                short: short.clone(),
+                hash: hash.clone(),
+                author: author.clone(),
+                date_iso: date_iso.clone(),
+                subject: subject.clone(),
+                branch: branch.clone(),
+            });
+        }
+    }
+    Ok(files)
+}
+
+/// Every file rename/move across all refs:
+/// `git log --all --source --diff-filter=R -M40% --name-status`. The 40% similarity
+/// floor also catches moves that edited the file (score < 100), which the UI flags as
+/// "搬移+改動". Each commit prints a US-joined header, then "R<score>\t<old>\t<new>" lines.
+#[tauri::command]
+pub fn list_renamed_files(repo: String) -> Result<Vec<RenamedFile>, String> {
+    let fmt = format!("--pretty=format:%H{US}%h{US}%S{US}%an{US}%cI{US}%s");
+    let out = run_git(
+        &repo,
+        &[
+            "log",
+            "--all",
+            "--source",
+            "--diff-filter=R",
+            "-M40%",
+            "--name-status",
+            &fmt,
+        ],
+    )?;
+
+    let mut files: Vec<RenamedFile> = Vec::new();
+    let (mut hash, mut short, mut branch) = (String::new(), String::new(), String::new());
+    let (mut author, mut date_iso, mut subject) =
+        (String::new(), String::new(), String::new());
+
+    for line in out.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        if line.contains(US) {
+            let f: Vec<&str> = line.splitn(6, US).collect();
+            if f.len() < 6 {
+                continue;
+            }
+            hash = f[0].to_string();
+            short = f[1].to_string();
+            branch = clean_source_ref(f[2]);
+            author = f[3].to_string();
+            date_iso = f[4].to_string();
+            subject = f[5].to_string();
+        } else {
+            // rename status row: "R<score>\t<old>\t<new>"
+            let f: Vec<&str> = line.splitn(3, '\t').collect();
+            if f.len() < 3 || !f[0].starts_with('R') {
+                continue;
+            }
+            let score = f[0][1..].parse::<u32>().unwrap_or(0);
+            files.push(RenamedFile {
+                old_path: f[1].to_string(),
+                new_path: f[2].to_string(),
+                score,
+                short: short.clone(),
+                hash: hash.clone(),
+                author: author.clone(),
+                date_iso: date_iso.clone(),
+                subject: subject.clone(),
+                branch: branch.clone(),
+            });
+        }
+    }
+    Ok(files)
 }
 
 /// Full diff for a single commit (`git show <sha>`), parsed into files → lines.
@@ -504,6 +662,111 @@ index 000..333
         assert!(json.contains("\"dateIso\""), "camelCase key: {json}");
         assert!(json.contains("\"isMerge\""), "camelCase key: {json}");
         assert!(!json.contains("date_iso"), "no snake_case leaks: {json}");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn clean_source_ref_strips_prefixes() {
+        assert_eq!(clean_source_ref("refs/heads/feature/x"), "feature/x");
+        assert_eq!(clean_source_ref("refs/remotes/origin/main"), "main");
+        assert_eq!(clean_source_ref("refs/heads/main"), "main");
+        assert_eq!(clean_source_ref("HEAD"), "HEAD");
+    }
+
+    /// Build a repo where one file is deleted on a feature branch and assert the
+    /// deletion is surfaced across all refs with its commit metadata and branch.
+    #[test]
+    fn deleted_files_lists_removals() {
+        let mut dir: PathBuf = std::env::temp_dir();
+        dir.push(format!("deltascope_del_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let repo = dir.to_string_lossy().to_string();
+
+        git(&repo, &["init", "-b", "main"]);
+        git(&repo, &["config", "user.email", "t@t"]);
+        git(&repo, &["config", "user.name", "Tester"]);
+        fs::write(dir.join("keep.txt"), "1").unwrap();
+        fs::write(dir.join("gone.txt"), "2").unwrap();
+        git(&repo, &["add", "."]);
+        git(&repo, &["commit", "-m", "init two files"]);
+
+        // Delete gone.txt on a feature branch.
+        git(&repo, &["checkout", "-b", "feature/cleanup"]);
+        fs::remove_file(dir.join("gone.txt")).unwrap();
+        git(&repo, &["add", "-A"]);
+        git(&repo, &["commit", "-m", "remove gone.txt"]);
+
+        let dels = list_deleted_files(repo.clone()).unwrap();
+        assert_eq!(dels.len(), 1, "exactly one deletion across all refs");
+        let d = &dels[0];
+        assert_eq!(d.path, "gone.txt");
+        assert_eq!(d.subject, "remove gone.txt");
+        assert_eq!(d.author, "Tester");
+        assert_eq!(d.branch, "feature/cleanup");
+        assert!(!d.short.is_empty(), "short hash present");
+        assert!(!d.hash.is_empty() && d.hash.len() >= 40, "full sha present");
+        assert!(!d.date_iso.is_empty());
+
+        // Wire contract: camelCase keys must match data-contract.ts.
+        let json = serde_json::to_string(d).unwrap();
+        assert!(json.contains("\"dateIso\""), "camelCase key: {json}");
+        assert!(!json.contains("date_iso"), "no snake_case leaks: {json}");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    /// A pure move (R100) and a move-with-edit (R<100) must both surface, with the
+    /// score distinguishing them and old/new paths captured.
+    #[test]
+    fn renamed_files_lists_moves() {
+        let mut dir: PathBuf = std::env::temp_dir();
+        dir.push(format!("deltascope_ren_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let repo = dir.to_string_lossy().to_string();
+
+        git(&repo, &["init", "-b", "main"]);
+        git(&repo, &["config", "user.email", "t@t"]);
+        git(&repo, &["config", "user.name", "Tester"]);
+        fs::write(dir.join("old.txt"), "line1\nline2\nline3\n").unwrap();
+        git(&repo, &["add", "."]);
+        git(&repo, &["commit", "-m", "init"]);
+
+        git(&repo, &["checkout", "-b", "feature/move"]);
+        // pure rename
+        git(&repo, &["mv", "old.txt", "new.txt"]);
+        git(&repo, &["commit", "-m", "pure rename"]);
+        // rename + edit
+        fs::write(dir.join("new.txt"), "line1\nline2\nCHANGED\nadded\n").unwrap();
+        git(&repo, &["mv", "new.txt", "renamed2.txt"]);
+        git(&repo, &["add", "-A"]);
+        git(&repo, &["commit", "-m", "rename and edit"]);
+
+        let mut rens = list_renamed_files(repo.clone()).unwrap();
+        assert_eq!(rens.len(), 2, "both renames surface");
+        // sort by score so assertions are order-independent
+        rens.sort_by_key(|r| r.score);
+
+        let edited = &rens[0];
+        assert_eq!(edited.old_path, "new.txt");
+        assert_eq!(edited.new_path, "renamed2.txt");
+        assert!(edited.score < 100, "moved + edited: score {}", edited.score);
+        assert_eq!(edited.branch, "feature/move");
+
+        let pure = &rens[1];
+        assert_eq!(pure.old_path, "old.txt");
+        assert_eq!(pure.new_path, "new.txt");
+        assert_eq!(pure.score, 100, "pure move is R100");
+        assert_eq!(pure.author, "Tester");
+        assert!(!pure.hash.is_empty() && pure.hash.len() >= 40);
+
+        // Wire contract: camelCase keys must match data-contract.ts.
+        let json = serde_json::to_string(pure).unwrap();
+        assert!(json.contains("\"oldPath\""), "camelCase key: {json}");
+        assert!(json.contains("\"newPath\""), "camelCase key: {json}");
+        assert!(!json.contains("old_path"), "no snake_case leaks: {json}");
 
         let _ = fs::remove_dir_all(&dir);
     }
