@@ -3,6 +3,8 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "license": "CC-BY-NC-ND-4.0",
+  "author": "Daniel Lan",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
