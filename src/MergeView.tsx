@@ -1,5 +1,4 @@
 import { useRef } from "react";
-import type { CSSProperties } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useI18n } from "./i18n";
 import type { ContainedCommit } from "./rows";
@@ -9,8 +8,6 @@ export interface MergeFrame {
   fullHash: string; // drill key + list_merge_commits argument
   shortHash: string; // header display
   name: string; // breadcrumb label (source branch, or short hash if unparsed)
-  node: string; // dot / rail color
-  tagStyle: CSSProperties;
 }
 
 /** Full-screen overlay for a merge's brought-in commits. Renders the top of the

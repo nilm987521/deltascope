@@ -17,7 +17,6 @@ import MergeView, { type MergeFrame } from "./MergeView";
 import ContainedRow from "./ContainedRow";
 import type { CommitDiff } from "./data-contract";
 import {
-  branchColors,
   buildBranchRows,
   toContained,
   type BuiltData,
@@ -281,22 +280,18 @@ export default function App() {
       fullHash: r.id,
       shortHash: r.hash,
       name: r.branchShort || r.hash,
-      node: r.node,
-      tagStyle: r.tagStyle,
     }),
     [],
   );
 
-  const frameFromContained = useCallback((cc: ContainedCommit): MergeFrame => {
-    const { node, tagStyle } = branchColors(cc.branchShort);
-    return {
+  const frameFromContained = useCallback(
+    (cc: ContainedCommit): MergeFrame => ({
       fullHash: cc.fullHash,
       shortHash: cc.hash,
       name: cc.branchShort || cc.hash,
-      node,
-      tagStyle,
-    };
-  }, []);
+    }),
+    [],
+  );
 
   // open a top-level merge full-screen (double-click on a merge row)
   const openMergeView = useCallback(

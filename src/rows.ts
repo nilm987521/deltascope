@@ -86,19 +86,6 @@ function nodeColor(hue: number, isHotfix: boolean): string {
   return isHotfix ? `oklch(0.72 0.16 ${hue})` : `oklch(0.74 0.13 ${hue})`;
 }
 
-/** Deterministic node + tag colors for a branch name (used by nested merge frames,
- *  which don't appear as top-level rows and so have no assigned hue). */
-export function branchColors(
-  name: string,
-  isHotfix = false,
-): { node: string; tagStyle: CSSProperties } {
-  const hue =
-    name === ""
-      ? 200
-      : HUES[[...name].reduce((s, ch) => s + ch.charCodeAt(0), 0) % HUES.length];
-  return { node: nodeColor(hue, isHotfix), tagStyle: tagStyleFor(hue, isHotfix) };
-}
-
 /** Map a raw MergeCommit into the shape the contained list renders. */
 export function toContained(c: MergeCommit): ContainedCommit {
   const d = new Date(c.dateIso);
