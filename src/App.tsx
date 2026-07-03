@@ -13,8 +13,11 @@ import {
 import { openPath } from "./sys";
 import DeletedFilesView from "./DeletedFilesView";
 import RenamedFilesView from "./RenamedFilesView";
+import MergeView, { type MergeFrame } from "./MergeView";
+import ContainedRow from "./ContainedRow";
 import type { CommitDiff } from "./data-contract";
 import {
+  branchColors,
   buildBranchRows,
   toContained,
   type BuiltData,
@@ -91,6 +94,9 @@ export default function App() {
   const [diffFile, setDiffFile] = useState(0);
   const [diffLoading, setDiffLoading] = useState(false);
 
+  // full-screen merge view: drill stack (empty = closed)
+  const [mergeStack, setMergeStack] = useState<MergeFrame[]>([]);
+
   // flash message
   const [flash, setFlash] = useState<{ msg: string; err: boolean } | null>(
     null,
@@ -118,6 +124,7 @@ export default function App() {
         setCounts({});
         setDiffCommit(null);
         setDiffData(null);
+        setMergeStack([]);
         // brought-in counts for the merge rows only
         const mergeHashes = built.rows
           .filter((r) => r.isMerge)
@@ -188,24 +195,31 @@ export default function App() {
     [repoPath, loadBranch],
   );
 
-  const onToggle = useCallback(
-    async (row: Row) => {
-      const opening = sel !== row.id;
-      setSel(opening ? row.id : null);
-      if (opening && !contained[row.id] && repoPath) {
-        setLoadingCommits((m) => ({ ...m, [row.id]: true }));
-        try {
-          const commits = await listMergeCommits(repoPath, row.id);
-          setContained((m) => ({ ...m, [row.id]: commits.map(toContained) }));
-        } catch (e) {
-          setContained((m) => ({ ...m, [row.id]: [] }));
-          setFlashMsg(String(e), true);
-        } finally {
-          setLoadingCommits((m) => ({ ...m, [row.id]: false }));
-        }
+  // Lazily fetch + cache a merge's brought-in commits, keyed by full hash.
+  const ensureContained = useCallback(
+    async (fullHash: string) => {
+      if (contained[fullHash] || !repoPath) return;
+      setLoadingCommits((m) => ({ ...m, [fullHash]: true }));
+      try {
+        const commits = await listMergeCommits(repoPath, fullHash);
+        setContained((m) => ({ ...m, [fullHash]: commits.map(toContained) }));
+      } catch (e) {
+        setContained((m) => ({ ...m, [fullHash]: [] }));
+        setFlashMsg(String(e), true);
+      } finally {
+        setLoadingCommits((m) => ({ ...m, [fullHash]: false }));
       }
     },
-    [sel, contained, repoPath, setFlashMsg],
+    [contained, repoPath, setFlashMsg],
+  );
+
+  const onToggle = useCallback(
+    (row: Row) => {
+      const opening = sel !== row.id;
+      setSel(opening ? row.id : null);
+      if (opening) ensureContained(row.id);
+    },
+    [sel, ensureContained],
   );
 
   const openDiff = useCallback(
@@ -260,6 +274,61 @@ export default function App() {
         target: row.target,
       }),
     [openDiff],
+  );
+
+  const frameFromRow = useCallback(
+    (r: Row): MergeFrame => ({
+      fullHash: r.id,
+      shortHash: r.hash,
+      name: r.branchShort || r.hash,
+      node: r.node,
+      tagStyle: r.tagStyle,
+    }),
+    [],
+  );
+
+  const frameFromContained = useCallback((cc: ContainedCommit): MergeFrame => {
+    const { node, tagStyle } = branchColors(cc.branchShort);
+    return {
+      fullHash: cc.fullHash,
+      shortHash: cc.hash,
+      name: cc.branchShort || cc.hash,
+      node,
+      tagStyle,
+    };
+  }, []);
+
+  // open a top-level merge full-screen (double-click on a merge row)
+  const openMergeView = useCallback(
+    (row: Row) => {
+      setMergeStack([frameFromRow(row)]);
+      ensureContained(row.id);
+    },
+    [frameFromRow, ensureContained],
+  );
+
+  // drill into a nested merge from within the merge view
+  const drillMerge = useCallback(
+    (cc: ContainedCommit) => {
+      setMergeStack((s) => [...s, frameFromContained(cc)]);
+      ensureContained(cc.fullHash);
+    },
+    [frameFromContained, ensureContained],
+  );
+
+  // drill straight from the inline accordion (seeds [parent, nested])
+  const drillFromAccordion = useCallback(
+    (parent: Row, cc: ContainedCommit) => {
+      setMergeStack([frameFromRow(parent), frameFromContained(cc)]);
+      ensureContained(cc.fullHash);
+    },
+    [frameFromRow, frameFromContained, ensureContained],
+  );
+
+  const mergeBack = useCallback(() => setMergeStack((s) => s.slice(0, -1)), []);
+  const gotoCrumb = useCallback(
+    (i: number) => setMergeStack((s) => (i < 0 ? [] : s.slice(0, i + 1))),
+    [],
   );
 
   // window controls (custom titlebar — decorations are off)
@@ -517,6 +586,9 @@ export default function App() {
                   <div
                     className={"row" + (isSel ? " sel" : "")}
                     onClick={() => (c.isMerge ? onToggle(c) : openCommitDiff(c))}
+                    onDoubleClick={() => {
+                      if (c.isMerge) openMergeView(c);
+                    }}
                   >
                     <div className="node-col">
                       <div className="rail" />
@@ -580,28 +652,12 @@ export default function App() {
                             style={{ borderColor: c.node }}
                           >
                             {cc.map((x, i) => (
-                              <div
-                                className="cc-row"
+                              <ContainedRow
                                 key={x.hash + ":" + i}
-                                title={t("diff.viewCode")}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openDiff(x);
-                                }}
-                              >
-                                <span className="cc-hash">{x.hash}</span>
-                                <span className="cc-msg">{x.msg}</span>
-                                <span className="cc-author">◍ {x.author}</span>
-                                <span className="cc-when">· {x.when}</span>
-                                <span className="cc-stats">
-                                  <span className="cc-add">+{x.add}</span>
-                                  <span className="cc-del">
-                                    {MINUS}
-                                    {x.del}
-                                  </span>
-                                  <span className="cc-chev">›</span>
-                                </span>
-                              </div>
+                                cc={x}
+                                onOpen={openDiff}
+                                onDrill={(nested) => drillFromAccordion(c, nested)}
+                              />
                             ))}
                           </div>
                         )}
@@ -626,6 +682,18 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {mergeStack.length > 0 && (
+        <MergeView
+          stack={mergeStack}
+          contained={contained[mergeStack[mergeStack.length - 1].fullHash]}
+          loading={!!loadingCommits[mergeStack[mergeStack.length - 1].fullHash]}
+          onBack={mergeBack}
+          onBreadcrumb={gotoCrumb}
+          onDrill={drillMerge}
+          onOpenDiff={openDiff}
+        />
+      )}
 
       {diffCommit && (
         <div className="diff-overlay">
