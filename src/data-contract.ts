@@ -42,6 +42,20 @@ export interface DeletedFile {
   branch: string; // source branch, cleaned ("" if none)
 }
 
+/** One file rename/move found anywhere in history
+ *  (git log --all --diff-filter=R -M --name-status). One entry per (renaming commit, rename). */
+export interface RenamedFile {
+  oldPath: string; // path before the rename
+  newPath: string; // path after the rename
+  score: number; // rename similarity: 100 = pure move; <100 = moved + edited
+  short: string; // renaming commit short hash
+  hash: string; // renaming commit full SHA
+  author: string;
+  dateIso: string;
+  subject: string; // renaming commit message
+  branch: string; // source branch, cleaned ("" if none)
+}
+
 /** One line of a unified diff, resolved to old/new line numbers. */
 export interface DiffLine {
   kind: "hunk" | "add" | "del" | "context";

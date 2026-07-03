@@ -12,6 +12,7 @@ import {
 } from "./git";
 import { openPath } from "./sys";
 import DeletedFilesView from "./DeletedFilesView";
+import RenamedFilesView from "./RenamedFilesView";
 import type { CommitDiff } from "./data-contract";
 import {
   buildBranchRows,
@@ -60,9 +61,12 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // which screen is showing: branch history vs deleted files
-  const [view, setView] = useState<"branches" | "deleted">("branches");
+  // which screen is showing: branch history / deleted files / renamed files
+  const [view, setView] = useState<"branches" | "deleted" | "renamed">(
+    "branches",
+  );
   const [deletedNonce, setDeletedNonce] = useState(0); // bumps to reload deleted view
+  const [renamedNonce, setRenamedNonce] = useState(0); // bumps to reload renamed view
 
   // filters
   const [search, setSearch] = useState("");
@@ -165,6 +169,8 @@ export default function App() {
     window.setTimeout(() => setRefreshing(false), 650);
     if (view === "deleted") {
       setDeletedNonce((n) => n + 1);
+    } else if (view === "renamed") {
+      setRenamedNonce((n) => n + 1);
     } else {
       await loadBranch(repoPath, viewBranch);
     }
@@ -327,7 +333,12 @@ export default function App() {
         </div>
         <span className="app-name">DeltaScope</span>
         <span className="app-title">
-          {repoName} — {view === "deleted" ? "已刪除檔案" : "分支歷史"}
+          {repoName} —{" "}
+          {view === "deleted"
+            ? "已刪除檔案"
+            : view === "renamed"
+              ? "已更名檔案"
+              : "分支歷史"}
         </span>
         <span className="spacer" />
       </div>
@@ -356,13 +367,19 @@ export default function App() {
             className={"seg-btn" + (view === "branches" ? " active" : "")}
             onClick={() => setView("branches")}
           >
-            分支歷史
+            Branch
           </button>
           <button
             className={"seg-btn" + (view === "deleted" ? " active" : "")}
             onClick={() => setView("deleted")}
           >
-            已刪除檔案
+            Remove
+          </button>
+          <button
+            className={"seg-btn" + (view === "renamed" ? " active" : "")}
+            onClick={() => setView("renamed")}
+          >
+            Rename
           </button>
         </div>
         {flash && (
@@ -709,10 +726,16 @@ export default function App() {
         <span className="right">{filtered.length} commits</span>
       </div>
         </>
-      ) : (
+      ) : view === "deleted" ? (
         <DeletedFilesView
           repoPath={repoPath}
           reloadNonce={deletedNonce}
+          onFlash={setFlashMsg}
+        />
+      ) : (
+        <RenamedFilesView
+          repoPath={repoPath}
+          reloadNonce={renamedNonce}
           onFlash={setFlashMsg}
         />
       )}

@@ -14,6 +14,7 @@ pub fn run() {
             git::commit_diff,
             git::list_branch_commits,
             git::list_deleted_files,
+            git::list_renamed_files,
             sys::open_path,
         ])
         .run(tauri::generate_context!())

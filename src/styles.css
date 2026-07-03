@@ -1050,3 +1050,50 @@ input::placeholder {
   background: oklch(0.24 0.01 160);
   color: oklch(0.85 0.02 160);
 }
+
+/* ---- renamed-files view (reuses .del-* row/list/detail) ---- */
+.ren-move-ico {
+  flex: none;
+  width: 14px;
+  text-align: center;
+  color: oklch(0.68 0.11 250);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+}
+.ren-old {
+  color: oklch(0.5 0.02 160);
+}
+.ren-arrow {
+  color: oklch(0.6 0.1 250);
+  padding: 0 6px;
+}
+.ren-new-name {
+  color: oklch(0.82 0.02 160);
+}
+.ren-badge {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  background: oklch(0.24 0.04 250);
+  color: oklch(0.78 0.09 250);
+}
+.ren-badge.edited {
+  background: oklch(0.26 0.06 70);
+  color: oklch(0.82 0.12 70);
+}
+.ren-group-count {
+  flex: none;
+  color: oklch(0.68 0.11 250);
+  font-weight: 600;
+}
+.ren-detail-eyebrow {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  color: oklch(0.7 0.1 250);
+}
+.del-field-value.ren-old {
+  color: oklch(0.6 0.02 160);
+}

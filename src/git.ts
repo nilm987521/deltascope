@@ -6,6 +6,7 @@ import type {
   DeletedFile,
   MergeCommit,
   MergeCount,
+  RenamedFile,
 } from "./data-contract";
 
 /** Open the system folder picker; returns the chosen path or null. */
@@ -53,4 +54,8 @@ export function listBranchCommits(
 
 export function listDeletedFiles(repo: string): Promise<DeletedFile[]> {
   return invoke<DeletedFile[]>("list_deleted_files", { repo });
+}
+
+export function listRenamedFiles(repo: string): Promise<RenamedFile[]> {
+  return invoke<RenamedFile[]>("list_renamed_files", { repo });
 }
