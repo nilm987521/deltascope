@@ -51,6 +51,13 @@ export function titleOf(short: string): string {
   return m ? m[3].replace(/_/g, " ") : short.replace(/[_-]/g, " ");
 }
 
+/** From a merge subject "Merge branch 'x' into develop" pull the target branch
+ *  ("develop") — the token after the final "into". "" when the subject has none. */
+export function mergeTargetOf(subject: string): string {
+  const m = subject.match(/\binto\s+(\S+)\s*$/);
+  return m ? m[1].replace(/^origin\//, "") : "";
+}
+
 function tagStyleFor(hue: number, isHotfix: boolean): CSSProperties {
   const c = isHotfix ? 0.09 : 0.05;
   const ct = isHotfix ? 0.14 : 0.11;
@@ -90,7 +97,7 @@ export function buildRows(merges: Merge[]): BuiltData {
       hash: m.short,
       branch: m.branch,
       branchShort: branchShort || m.branch || "(unknown)",
-      target: m.target,
+      target: mergeTargetOf(m.subject) || m.target,
       isHotfix: m.isHotfix,
       isMerge: true,
       title: titleOf(branchShort) || m.subject,
@@ -175,7 +182,7 @@ export function buildBranchRows(commits: BranchCommit[]): BuiltData {
       hash: c.short,
       branch: c.branch,
       branchShort: branchShort || c.branch,
-      target: "",
+      target: c.isMerge ? mergeTargetOf(c.subject) : "",
       isHotfix,
       isMerge: c.isMerge,
       author: c.author,

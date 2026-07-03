@@ -624,7 +624,9 @@ export default function App() {
                       ) : (
                         <span className="row-author">◍ {c.author}</span>
                       )}
-                      <span className="title">{c.title}</span>
+                      <span className="title">
+                        {c.isMerge && c.target ? c.target : c.title}
+                      </span>
                       {c.isMerge && (
                         <span
                           className={"commit-count" + (countKnown ? "" : " dim")}
