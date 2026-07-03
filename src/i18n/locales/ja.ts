@@ -1,3 +1,93 @@
-import { zhTW, type Dict } from "./zh-TW";
-// 佔位:先複用繁中結構確保型別同構,Task 2 填入日文翻譯。
-export const ja: Dict = zhTW;
+import type { Dict } from "./zh-TW";
+
+export const ja: Dict = {
+  common: {
+    loading: "読み込み中…",
+    loadingShort: "読み込み中…",
+    copy: "コピー",
+    copied: "コマンドをコピーしました",
+    author: "作成者",
+    branch: "ブランチ",
+    time: "日時",
+    byCommit: "コミット順",
+    noMatch: "条件に一致するファイルがありません",
+  },
+  titlebar: {
+    close: "閉じる",
+    minimize: "最小化",
+    zoom: "ズーム",
+    refresh: "再読み込み",
+  },
+  tabs: {
+    deletedFiles: "削除されたファイル",
+    renamedFiles: "名前変更されたファイル",
+    branchHistory: "ブランチ履歴",
+  },
+  repo: {
+    pick: "Git リポジトリを選択",
+    pickStart: "Git リポジトリを選択して開始",
+    pickFolder: "フォルダを選択…",
+    noDeleted: "このリポジトリに削除されたファイルはありません",
+    noRenamed: "このリポジトリに名前変更/移動されたファイルはありません",
+  },
+  filter: {
+    all: "全期間",
+    last7d: "過去 7 日",
+    last30d: "過去 30 日",
+    last90d: "過去 90 日",
+    allTypes: "全種類（{n}）",
+    allBranches: "全ブランチ（{n}）",
+  },
+  status: {
+    reloaded: "再読み込みしました · たった今",
+  },
+  branchView: {
+    toggle: "ブランチを表示",
+  },
+  list: {
+    showing: "表示",
+  },
+  mergeList: {
+    searchPlaceholder: "ブランチ、メッセージ、作成者、ハッシュを検索…",
+    empty: "条件に一致するコミットがありません",
+    loadingContained: "含まれるコミットを読み込み中…",
+    broughtInPre: "このマージが取り込んだ",
+    broughtInPost: "件のコミット",
+    noSecondParent: "（このマージに第 2 親はない、または fast-forward — 取り込んだコミットなし）",
+  },
+  diff: {
+    viewCode: "コード変更を表示",
+    back: "← 一覧に戻る",
+    filesSuffix: "件のファイル",
+    loadingCode: "コード変更を読み込み中…",
+    noFileChanges: "このコミットにファイル変更はありません（マージノードの可能性）",
+    changedFiles: "変更されたファイル",
+    openDefault: "ダブルクリックで既定のアプリで開く",
+    binary: "バイナリファイルのため差分を表示できません",
+  },
+  deleted: {
+    searchPlaceholder: "パス、ファイル名、作成者、ハッシュを検索…",
+    tabFileList: "ファイル一覧",
+    deletedCountPre: "削除",
+    eyebrow: "削除されたファイル",
+    deleteCommit: "削除コミット",
+    restore: "このファイルを復元",
+    viewBefore: "削除前の内容を表示",
+  },
+  renamed: {
+    searchPlaceholder: "新旧パス、作成者、ハッシュを検索…",
+    tabMoveEdit: "移動+変更",
+    moveEditBadge: "移動+変更 {n}%",
+    pureMove: "移動のみ",
+    moveEditTitle: "移動 + 変更",
+    renamedCountPre: "名前変更",
+    oldPath: "元のパス",
+    newPath: "新しいパス",
+    similarity: "類似度",
+    contentChanged: "（内容も変更あり）",
+    moveOnly: "（移動のみ）",
+    renameCommit: "名前変更コミット",
+    trackHistory: "このファイルの全履歴を追跡",
+    viewRename: "この名前変更を表示",
+  },
+};

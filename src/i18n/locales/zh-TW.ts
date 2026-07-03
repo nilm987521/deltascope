@@ -91,7 +91,12 @@ export const zhTW = {
   },
 } as const;
 
-export type Dict = typeof zhTW;
+// zhTW 以 `as const` 宣告以利下方 TKey 產生字面量聯集,但這也讓每個 leaf 變成
+// 該中文字串的 literal type。Dict 若直接等於 `typeof zhTW`,會導致其他語系
+// (en/ja) 的翻譯因文字不同而無法通過型別檢查。這裡把 leaf 型別放寬為 `string`,
+// 只保留巢狀的 group/key 結構(這才是「同構」檢查真正要驗證的東西)。
+type Widen<T> = { [K in keyof T]: T[K] extends string ? string : Widen<T[K]> };
+export type Dict = Widen<typeof zhTW>;
 
 // 產生所有 "group.key" 巢狀路徑的字面量聯集。
 export type TKey = {
