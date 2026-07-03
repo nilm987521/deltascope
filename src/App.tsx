@@ -224,7 +224,11 @@ export default function App() {
       if (mode === "branch") {
         const b = (viewBranch || target || branches[0] || "").trim();
         setViewBranch(b);
-        if (b) loadBranch(repoPath, b);
+        if (b) {
+          loadBranch(repoPath, b);
+        } else {
+          setData(EMPTY); // no branch to show — don't leave stale merge rows
+        }
       } else {
         load(repoPath, target);
       }
@@ -338,7 +342,8 @@ export default function App() {
         if (
           c.hash.includes(q) ||
           c.branch.toLowerCase().includes(q) ||
-          c.title.toLowerCase().includes(q)
+          c.title.toLowerCase().includes(q) ||
+          (c.author?.toLowerCase().includes(q) ?? false)
         )
           return true;
         const cc = contained[c.id];
@@ -564,7 +569,11 @@ export default function App() {
         ) : filtered.length === 0 ? (
           <div className="empty">
             <span className="glyph">∅</span>
-            <span className="msg">沒有符合條件的合併</span>
+            <span className="msg">
+              {viewMode === "branch"
+                ? "沒有符合條件的 commit"
+                : "沒有符合條件的合併"}
+            </span>
           </div>
         ) : (
           <div
