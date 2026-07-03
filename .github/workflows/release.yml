@@ -26,7 +26,8 @@ jobs:
             args: "--target x86_64-apple-darwin"
             rust-target: x86_64-apple-darwin
           - platform: ubuntu-22.04
-            args: ""
+            # Explicitly emit all three Linux bundle formats (incl. rpm).
+            args: "--bundles deb,rpm,appimage"
             rust-target: ""
           - platform: windows-latest
             args: ""
