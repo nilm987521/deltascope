@@ -145,11 +145,11 @@ export default function App() {
   );
 
   const loadBranch = useCallback(
-    async (repo: string, branch: string) => {
+    async (repo: string, branchName: string) => {
       const gen = ++loadGen.current;
       setLoading(true);
       try {
-        const commits = await listBranchCommits(repo, branch);
+        const commits = await listBranchCommits(repo, branchName);
         const built = buildBranchRows(commits);
         setData(built);
         setSel(null);
@@ -184,6 +184,7 @@ export default function App() {
       const dir = await pickRepo();
       if (!dir) return;
       setRepoPath(dir);
+      setViewMode("merge"); // a fresh repo starts in the default merge view
       await load(dir);
     } catch (e) {
       setFlashMsg(String(e), true);
@@ -194,9 +195,13 @@ export default function App() {
     if (!repoPath) return;
     setRefreshing(true);
     window.setTimeout(() => setRefreshing(false), 650);
-    await load(repoPath, target);
+    if (viewMode === "branch") {
+      await loadBranch(repoPath, viewBranch);
+    } else {
+      await load(repoPath, target);
+    }
     setFlashMsg("已重新讀取 · 剛剛");
-  }, [repoPath, target, load, setFlashMsg]);
+  }, [repoPath, viewMode, viewBranch, target, load, loadBranch, setFlashMsg]);
 
   const onTarget = useCallback(
     async (v: string) => {
@@ -422,12 +427,14 @@ export default function App() {
           <button
             className={"seg-btn" + (viewMode === "merge" ? " active" : "")}
             onClick={() => switchMode("merge")}
+            disabled={!hasRepo}
           >
             合併檢視
           </button>
           <button
             className={"seg-btn" + (viewMode === "branch" ? " active" : "")}
             onClick={() => switchMode("branch")}
+            disabled={!hasRepo}
           >
             分支檢視
           </button>
@@ -816,7 +823,9 @@ export default function App() {
         <span className="dollar">$</span>
         <span>{command}</span>
         <span className="right">
-          {filtered.length} merges · {branchCount} branches
+          {viewMode === "branch"
+            ? `${filtered.length} commits`
+            : `${filtered.length} merges · ${branchCount} branches`}
         </span>
       </div>
     </div>
