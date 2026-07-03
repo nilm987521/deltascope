@@ -3,6 +3,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import type {
   BranchCommit,
   CommitDiff,
+  DeletedFile,
   MergeCommit,
   MergeCount,
 } from "./data-contract";
@@ -48,4 +49,8 @@ export function listBranchCommits(
   branch: string,
 ): Promise<BranchCommit[]> {
   return invoke<BranchCommit[]>("list_branch_commits", { repo, branch });
+}
+
+export function listDeletedFiles(repo: string): Promise<DeletedFile[]> {
+  return invoke<DeletedFile[]>("list_deleted_files", { repo });
 }

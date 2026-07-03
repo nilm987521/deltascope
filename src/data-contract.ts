@@ -30,6 +30,18 @@ export interface BranchCommit {
   branch: string; // source branch for merges; "" for regular commits
 }
 
+/** One file deletion found anywhere in history
+ *  (git log --all --diff-filter=D --name-only). One entry per (deleting commit, path). */
+export interface DeletedFile {
+  path: string; // full path git reported for the deletion
+  short: string; // deleting commit short hash
+  hash: string; // deleting commit full SHA (for the restore command)
+  author: string;
+  dateIso: string;
+  subject: string; // deleting commit message
+  branch: string; // source branch, cleaned ("" if none)
+}
+
 /** One line of a unified diff, resolved to old/new line numbers. */
 export interface DiffLine {
   kind: "hunk" | "add" | "del" | "context";

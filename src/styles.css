@@ -828,3 +828,225 @@ input::placeholder {
   font-family: "IBM Plex Mono", monospace;
   white-space: nowrap;
 }
+
+/* ---- view toggle (branch history vs deleted files) ---- */
+.view-seg {
+  margin-left: 4px;
+}
+.view-seg .seg-btn {
+  height: 34px;
+  font-size: 12px;
+}
+
+/* ---- deleted-files view ---- */
+.del-main {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+.del-list {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  background: oklch(0.17 0.008 160);
+}
+.del-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px 9px 14px;
+  border-bottom: 1px solid oklch(0.235 0.008 160);
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.del-row:hover {
+  background: oklch(0.215 0.012 160);
+}
+.del-row.sel {
+  background: oklch(0.225 0.02 155);
+  box-shadow: inset 3px 0 0 oklch(0.8 0.14 155);
+}
+.del-x {
+  flex: none;
+  width: 14px;
+  text-align: center;
+  color: oklch(0.68 0.15 25);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+}
+.del-path {
+  flex: 1;
+  min-width: 0;
+  font-family: "IBM Plex Mono", monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.del-dir {
+  color: oklch(0.5 0.02 160);
+}
+.del-name {
+  color: oklch(0.82 0.02 160);
+  text-decoration: line-through;
+  text-decoration-color: oklch(0.6 0.11 25);
+}
+.del-ext {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: oklch(0.22 0.008 160);
+  color: oklch(0.6 0.03 160);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+}
+.del-hash {
+  flex: none;
+  color: oklch(0.62 0.1 150);
+  font-family: "IBM Plex Mono", monospace;
+}
+.del-author {
+  flex: none;
+  color: oklch(0.66 0.06 250);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.del-date {
+  flex: none;
+  width: 44px;
+  text-align: right;
+  color: oklch(0.48 0.02 160);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11.5px;
+}
+
+/* by-commit grouping */
+.del-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  background: oklch(0.15 0.008 160);
+  border-bottom: 1px solid oklch(0.24 0.008 160);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+}
+.del-group-hash {
+  flex: none;
+  color: oklch(0.62 0.1 150);
+}
+.del-group-msg {
+  flex: 1;
+  min-width: 0;
+  color: oklch(0.8 0.02 160);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.del-group-when {
+  flex: none;
+  color: oklch(0.48 0.02 160);
+  font-size: 11px;
+}
+.del-group-count {
+  flex: none;
+  color: oklch(0.7 0.14 25);
+  font-weight: 600;
+}
+.del-group-item .del-row {
+  padding-left: 30px;
+  background: oklch(0.165 0.008 160);
+}
+.del-group-item .del-row:hover {
+  background: oklch(0.205 0.012 160);
+}
+
+/* detail panel */
+.del-detail {
+  width: 340px;
+  flex: none;
+  border-left: 1px solid oklch(0.24 0.01 160);
+  background: oklch(0.155 0.008 160);
+  overflow: auto;
+  padding: 14px 16px 20px;
+}
+.del-detail-top {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.del-detail-eyebrow {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  color: oklch(0.6 0.11 25);
+}
+.del-detail-close {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  border: 1px solid oklch(0.3 0.01 160);
+  border-radius: 6px;
+  background: oklch(0.2 0.008 160);
+  color: oklch(0.6 0.02 160);
+  cursor: pointer;
+  font-size: 11px;
+}
+.del-detail-close:hover {
+  background: oklch(0.24 0.01 160);
+}
+.del-detail-title {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  word-break: break-all;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+.del-field {
+  margin-bottom: 12px;
+}
+.del-field-label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: oklch(0.48 0.02 160);
+  margin-bottom: 4px;
+}
+.del-field-value {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12.5px;
+  color: oklch(0.8 0.02 160);
+  word-break: break-all;
+}
+.del-cmd {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: oklch(0.13 0.008 160);
+  border: 1px solid oklch(0.28 0.01 160);
+  border-radius: 7px;
+  padding: 8px 10px;
+}
+.del-cmd code {
+  flex: 1;
+  min-width: 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11.5px;
+  color: oklch(0.78 0.06 155);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.del-copy {
+  flex: none;
+  cursor: pointer;
+  background: oklch(0.2 0.008 160);
+  border: 1px solid oklch(0.3 0.01 160);
+  border-radius: 5px;
+  color: oklch(0.7 0.02 160);
+  font-size: 10.5px;
+  padding: 3px 8px;
+}
+.del-copy:hover {
+  background: oklch(0.24 0.01 160);
+  color: oklch(0.85 0.02 160);
+}

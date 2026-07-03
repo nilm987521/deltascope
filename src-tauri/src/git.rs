@@ -39,6 +39,20 @@ pub struct BranchCommit {
     pub branch: String,   // parse_branch(subject) for merges; "" otherwise
 }
 
+/// One file deletion found anywhere in history
+/// (git log --all --diff-filter=D --name-only). One entry per (deleting commit, path).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeletedFile {
+    pub path: String,     // full path git reported for the deletion
+    pub short: String,    // deleting commit %h
+    pub hash: String,     // deleting commit %H (for `git checkout <hash>^ -- <path>`)
+    pub author: String,   // %an
+    pub date_iso: String, // %cI
+    pub subject: String,  // deleting commit message %s
+    pub branch: String,   // %S source ref, cleaned to a short branch name ("" if none)
+}
+
 /// One line of a unified diff, already resolved to old/new line numbers.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -207,6 +221,71 @@ pub fn list_branch_commits(repo: String, branch: String) -> Result<Vec<BranchCom
         });
     }
     Ok(commits)
+}
+
+/// Reduce a `%S` source ref ("refs/heads/feature/x", "refs/remotes/origin/main") to a
+/// short branch name ("feature/x", "main"). Non-ref values pass through trimmed.
+fn clean_source_ref(s: &str) -> String {
+    let s = s.trim();
+    let s = s.strip_prefix("refs/heads/").unwrap_or(s);
+    let s = s.strip_prefix("refs/remotes/").unwrap_or(s);
+    let s = s.strip_prefix("refs/tags/").unwrap_or(s);
+    s.strip_prefix("origin/").unwrap_or(s).to_string()
+}
+
+/// Every file deletion across all refs: `git log --all --source --diff-filter=D --name-only`.
+/// Each commit prints a US-joined metadata header, then the paths it deleted on their own
+/// lines. Merges show no diff by default, so they contribute nothing.
+#[tauri::command]
+pub fn list_deleted_files(repo: String) -> Result<Vec<DeletedFile>, String> {
+    let fmt = format!("--pretty=format:%H{US}%h{US}%S{US}%an{US}%cI{US}%s");
+    let out = run_git(
+        &repo,
+        &[
+            "log",
+            "--all",
+            "--source",
+            "--diff-filter=D",
+            "--name-only",
+            &fmt,
+        ],
+    )?;
+
+    let mut files: Vec<DeletedFile> = Vec::new();
+    // Rolling "current commit" context, updated on each header line.
+    let (mut hash, mut short, mut branch) = (String::new(), String::new(), String::new());
+    let (mut author, mut date_iso, mut subject) =
+        (String::new(), String::new(), String::new());
+
+    for line in out.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        if line.contains(US) {
+            let f: Vec<&str> = line.splitn(6, US).collect();
+            if f.len() < 6 {
+                continue;
+            }
+            hash = f[0].to_string();
+            short = f[1].to_string();
+            branch = clean_source_ref(f[2]);
+            author = f[3].to_string();
+            date_iso = f[4].to_string();
+            subject = f[5].to_string();
+        } else {
+            // a deleted path under the current commit
+            files.push(DeletedFile {
+                path: line.to_string(),
+                short: short.clone(),
+                hash: hash.clone(),
+                author: author.clone(),
+                date_iso: date_iso.clone(),
+                subject: subject.clone(),
+                branch: branch.clone(),
+            });
+        }
+    }
+    Ok(files)
 }
 
 /// Full diff for a single commit (`git show <sha>`), parsed into files → lines.
@@ -503,6 +582,57 @@ index 000..333
         let json = serde_json::to_string(merge).unwrap();
         assert!(json.contains("\"dateIso\""), "camelCase key: {json}");
         assert!(json.contains("\"isMerge\""), "camelCase key: {json}");
+        assert!(!json.contains("date_iso"), "no snake_case leaks: {json}");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn clean_source_ref_strips_prefixes() {
+        assert_eq!(clean_source_ref("refs/heads/feature/x"), "feature/x");
+        assert_eq!(clean_source_ref("refs/remotes/origin/main"), "main");
+        assert_eq!(clean_source_ref("refs/heads/main"), "main");
+        assert_eq!(clean_source_ref("HEAD"), "HEAD");
+    }
+
+    /// Build a repo where one file is deleted on a feature branch and assert the
+    /// deletion is surfaced across all refs with its commit metadata and branch.
+    #[test]
+    fn deleted_files_lists_removals() {
+        let mut dir: PathBuf = std::env::temp_dir();
+        dir.push(format!("deltascope_del_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let repo = dir.to_string_lossy().to_string();
+
+        git(&repo, &["init", "-b", "main"]);
+        git(&repo, &["config", "user.email", "t@t"]);
+        git(&repo, &["config", "user.name", "Tester"]);
+        fs::write(dir.join("keep.txt"), "1").unwrap();
+        fs::write(dir.join("gone.txt"), "2").unwrap();
+        git(&repo, &["add", "."]);
+        git(&repo, &["commit", "-m", "init two files"]);
+
+        // Delete gone.txt on a feature branch.
+        git(&repo, &["checkout", "-b", "feature/cleanup"]);
+        fs::remove_file(dir.join("gone.txt")).unwrap();
+        git(&repo, &["add", "-A"]);
+        git(&repo, &["commit", "-m", "remove gone.txt"]);
+
+        let dels = list_deleted_files(repo.clone()).unwrap();
+        assert_eq!(dels.len(), 1, "exactly one deletion across all refs");
+        let d = &dels[0];
+        assert_eq!(d.path, "gone.txt");
+        assert_eq!(d.subject, "remove gone.txt");
+        assert_eq!(d.author, "Tester");
+        assert_eq!(d.branch, "feature/cleanup");
+        assert!(!d.short.is_empty(), "short hash present");
+        assert!(!d.hash.is_empty() && d.hash.len() >= 40, "full sha present");
+        assert!(!d.date_iso.is_empty());
+
+        // Wire contract: camelCase keys must match data-contract.ts.
+        let json = serde_json::to_string(d).unwrap();
+        assert!(json.contains("\"dateIso\""), "camelCase key: {json}");
         assert!(!json.contains("date_iso"), "no snake_case leaks: {json}");
 
         let _ = fs::remove_dir_all(&dir);

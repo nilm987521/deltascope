@@ -11,6 +11,7 @@ import {
   pickRepo,
 } from "./git";
 import { openPath } from "./sys";
+import DeletedFilesView from "./DeletedFilesView";
 import type { CommitDiff } from "./data-contract";
 import {
   buildBranchRows,
@@ -58,6 +59,10 @@ export default function App() {
   const [viewBranch, setViewBranch] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // which screen is showing: branch history vs deleted files
+  const [view, setView] = useState<"branches" | "deleted">("branches");
+  const [deletedNonce, setDeletedNonce] = useState(0); // bumps to reload deleted view
 
   // filters
   const [search, setSearch] = useState("");
@@ -158,9 +163,13 @@ export default function App() {
     if (!repoPath) return;
     setRefreshing(true);
     window.setTimeout(() => setRefreshing(false), 650);
-    await loadBranch(repoPath, viewBranch);
+    if (view === "deleted") {
+      setDeletedNonce((n) => n + 1);
+    } else {
+      await loadBranch(repoPath, viewBranch);
+    }
     setFlashMsg("已重新讀取 · 剛剛");
-  }, [repoPath, viewBranch, loadBranch, setFlashMsg]);
+  }, [repoPath, view, viewBranch, loadBranch, setFlashMsg]);
 
   const onViewBranch = useCallback(
     (b: string) => {
@@ -317,7 +326,9 @@ export default function App() {
           />
         </div>
         <span className="app-name">DeltaScope</span>
-        <span className="app-title">{repoName} — 分支歷史</span>
+        <span className="app-title">
+          {repoName} — {view === "deleted" ? "已刪除檔案" : "分支歷史"}
+        </span>
         <span className="spacer" />
       </div>
 
@@ -340,29 +351,47 @@ export default function App() {
             ↻
           </span>
         </button>
+        <div className="seg view-seg">
+          <button
+            className={"seg-btn" + (view === "branches" ? " active" : "")}
+            onClick={() => setView("branches")}
+          >
+            分支歷史
+          </button>
+          <button
+            className={"seg-btn" + (view === "deleted" ? " active" : "")}
+            onClick={() => setView("deleted")}
+          >
+            已刪除檔案
+          </button>
+        </div>
         {flash && (
           <span className={"flash" + (flash.err ? " err" : "")}>
             {flash.msg}
           </span>
         )}
-        <div className="target-wrap">
-          <span className="lbl">檢視分支</span>
-          <span className="arr">→</span>
-          <select
-            className="select"
-            value={viewBranch}
-            onChange={(e) => onViewBranch(e.target.value)}
-            disabled={!hasRepo}
-          >
-            {branches.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
-        </div>
+        {view === "branches" && (
+          <div className="target-wrap">
+            <span className="lbl">檢視分支</span>
+            <span className="arr">→</span>
+            <select
+              className="select"
+              value={viewBranch}
+              onChange={(e) => onViewBranch(e.target.value)}
+              disabled={!hasRepo}
+            >
+              {branches.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
+      {view === "branches" ? (
+        <>
       {/* filter bar */}
       <div className="filterbar">
         <div className="search">
@@ -679,6 +708,14 @@ export default function App() {
         <span>{command}</span>
         <span className="right">{filtered.length} commits</span>
       </div>
+        </>
+      ) : (
+        <DeletedFilesView
+          repoPath={repoPath}
+          reloadNonce={deletedNonce}
+          onFlash={setFlashMsg}
+        />
+      )}
     </div>
   );
 }
