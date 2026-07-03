@@ -10,19 +10,6 @@ const US: char = '\u{1f}';
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Merge {
-    pub hash: String,
-    pub short: String,
-    pub date_iso: String,
-    pub refs: String,
-    pub subject: String,
-    pub branch: String,
-    pub target: String,
-    pub is_hotfix: bool,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct MergeCount {
     pub hash: String,
     pub count: u32,
@@ -126,38 +113,6 @@ pub fn list_branches(repo: String) -> Result<Vec<String>, String> {
         .map(|l| l.trim().to_string())
         .filter(|l| !l.is_empty())
         .collect())
-}
-
-#[tauri::command]
-pub fn list_merges(repo: String, target: String) -> Result<Vec<Merge>, String> {
-    let fmt = format!("--pretty=format:%H{US}%h{US}%cI{US}%D{US}%s");
-    let range = if target.trim().is_empty() {
-        "HEAD".to_string()
-    } else {
-        target.clone()
-    };
-    let out = run_git(&repo, &["log", "--merges", "--first-parent", &fmt, &range])?;
-
-    let mut merges = Vec::new();
-    for line in out.lines() {
-        let f: Vec<&str> = line.split(US).collect();
-        if f.len() < 5 {
-            continue;
-        }
-        let subject = f[4].to_string();
-        let branch = parse_branch(&subject);
-        merges.push(Merge {
-            hash: f[0].to_string(),
-            short: f[1].to_string(),
-            date_iso: f[2].to_string(),
-            refs: f[3].to_string(),
-            subject,
-            is_hotfix: branch == "hotfix",
-            branch,
-            target: range.clone(),
-        });
-    }
-    Ok(merges)
 }
 
 /// Cheaply count the commits each merge brought in (git rev-list --count <h>^1..<h>^2).
@@ -506,15 +461,19 @@ index 000..333
         assert!(branches.contains(&"main".to_string()));
         assert!(branches.contains(&"feature/demo".to_string()));
 
-        let merges = list_merges(repo.clone(), "main".to_string()).unwrap();
-        assert_eq!(merges.len(), 1, "exactly one merge on the first-parent line");
-        let m = &merges[0];
-        assert_eq!(m.branch, "feature/demo");
-        assert!(!m.is_hotfix);
-        assert_eq!(m.target, "main");
-        assert!(!m.short.is_empty() && !m.date_iso.is_empty());
+        // single-branch view: main's first-parent line is [merge, init].
+        // This is also where we get the merge commit's hash for the checks below.
+        let bcs = list_branch_commits(repo.clone(), "main".to_string()).unwrap();
+        assert_eq!(bcs.len(), 2, "first-parent main: merge + init");
+        let merge = &bcs[0];
+        assert!(merge.is_merge, "newest is the merge");
+        assert_eq!(merge.branch, "feature/demo");
+        assert!(!merge.short.is_empty() && !merge.date_iso.is_empty());
+        assert!(!bcs[1].is_merge, "root commit is not a merge");
+        assert_eq!(bcs[1].branch, "");
+        assert_eq!(bcs[1].subject, "init");
 
-        let commits = list_merge_commits(repo.clone(), m.hash.clone()).unwrap();
+        let commits = list_merge_commits(repo.clone(), merge.hash.clone()).unwrap();
         assert_eq!(commits.len(), 1, "the merge brought in one commit");
         assert_eq!(commits[0].subject, "add feature work");
         assert_eq!(commits[0].author, "Tester");
@@ -535,25 +494,15 @@ index 000..333
         assert!(df.lines.iter().any(|l| l.kind == "add" && l.text == "2"));
 
         // batch count matches the expanded list
-        let counts = count_merge_commits(repo.clone(), vec![m.hash.clone()]).unwrap();
+        let counts = count_merge_commits(repo.clone(), vec![merge.hash.clone()]).unwrap();
         assert_eq!(counts.len(), 1);
-        assert_eq!(counts[0].hash, m.hash);
+        assert_eq!(counts[0].hash, merge.hash);
         assert_eq!(counts[0].count, 1);
 
-        // single-branch view: main's first-parent line is [merge, init]
-        let bcs = list_branch_commits(repo.clone(), "main".to_string()).unwrap();
-        assert_eq!(bcs.len(), 2, "first-parent main: merge + init");
-        assert!(bcs[0].is_merge, "newest is the merge");
-        assert_eq!(bcs[0].hash, m.hash);
-        assert_eq!(bcs[0].branch, "feature/demo");
-        assert!(!bcs[1].is_merge, "root commit is not a merge");
-        assert_eq!(bcs[1].branch, "");
-        assert_eq!(bcs[1].subject, "init");
-
         // Guard the wire contract: JSON keys must match the frontend's data-contract.ts.
-        let json = serde_json::to_string(m).unwrap();
+        let json = serde_json::to_string(merge).unwrap();
         assert!(json.contains("\"dateIso\""), "camelCase key: {json}");
-        assert!(json.contains("\"isHotfix\""), "camelCase key: {json}");
+        assert!(json.contains("\"isMerge\""), "camelCase key: {json}");
         assert!(!json.contains("date_iso"), "no snake_case leaks: {json}");
 
         let _ = fs::remove_dir_all(&dir);

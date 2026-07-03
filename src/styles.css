@@ -821,9 +821,6 @@ input::placeholder {
 }
 
 /* ---- branch view ---- */
-.mode-seg {
-  flex: none;
-}
 .row-author {
   color: oklch(0.66 0.06 250);
   flex: none;

@@ -3,7 +3,6 @@ import { open } from "@tauri-apps/plugin-dialog";
 import type {
   BranchCommit,
   CommitDiff,
-  Merge,
   MergeCommit,
   MergeCount,
 } from "./data-contract";
@@ -24,10 +23,6 @@ export function listBranches(repo: string): Promise<string[]> {
 
 export function defaultBranch(repo: string): Promise<string> {
   return invoke<string>("default_branch", { repo });
-}
-
-export function listMerges(repo: string, target: string): Promise<Merge[]> {
-  return invoke<Merge[]>("list_merges", { repo, target: target || "" });
 }
 
 export function countMergeCommits(

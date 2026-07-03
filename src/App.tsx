@@ -8,29 +8,24 @@ import {
   listBranches,
   listBranchCommits,
   listMergeCommits,
-  listMerges,
   pickRepo,
 } from "./git";
 import { openPath } from "./sys";
 import type { CommitDiff } from "./data-contract";
 import {
   buildBranchRows,
-  buildRows,
   toContained,
   type BuiltData,
   type ContainedCommit,
-  type Option,
   type Row,
 } from "./rows";
 
 const MINUS = "−"; // − : matches the design's deletion label glyph
 
-type TypeFilter = "all" | "feature" | "hotfix";
 type DateFilter = "all" | "7d" | "30d" | "90d";
 
 const EMPTY: BuiltData = {
   rows: [],
-  branchOptions: [{ value: "all", label: "全部分支 (0)" }],
   dateOptions: [
     { value: "all", label: "全部時間" },
     { value: "7d", label: "近 7 天" },
@@ -60,16 +55,12 @@ export default function App() {
   const [repoPath, setRepoPath] = useState<string | null>(null);
   const [data, setData] = useState<BuiltData>(EMPTY);
   const [branches, setBranches] = useState<string[]>([]);
-  const [target, setTarget] = useState("");
-  const [viewMode, setViewMode] = useState<"merge" | "branch">("merge");
   const [viewBranch, setViewBranch] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // filters
   const [search, setSearch] = useState("");
-  const [branch, setBranch] = useState("all");
-  const [type, setType] = useState<TypeFilter>("all");
   const [date, setDate] = useState<DateFilter>("all");
 
   // expansion + lazily-loaded contained commits
@@ -102,48 +93,6 @@ export default function App() {
   }, []);
 
   // ---- data loading ----
-  const load = useCallback(
-    async (repo: string, targetToUse?: string) => {
-      const gen = ++loadGen.current;
-      setLoading(true);
-      try {
-        let def = "";
-        try {
-          def = await defaultBranch(repo);
-        } catch {
-          /* detached / bare — fall through */
-        }
-        const brs = await listBranches(repo);
-        const tgt = (targetToUse ?? (def || brs[0] || "")).trim();
-        const merges = await listMerges(repo, tgt);
-        setBranches(brs);
-        setTarget(tgt);
-        setData(buildRows(merges));
-        setSel(null);
-        setContained({});
-        setCounts({});
-        setDiffCommit(null); // close any open diff — it belongs to the old range
-        setDiffData(null);
-        // Fill in per-merge commit counts in the background — the list is already visible.
-        countMergeCommits(
-          repo,
-          merges.map((m) => m.hash),
-        )
-          .then((list) => {
-            if (gen !== loadGen.current) return; // a newer load superseded this one
-            setCounts(Object.fromEntries(list.map((c) => [c.hash, c.count])));
-          })
-          .catch(() => {});
-      } catch (e) {
-        setData(EMPTY);
-        setFlashMsg(String(e), true);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setFlashMsg],
-  );
-
   const loadBranch = useCallback(
     async (repo: string, branchName: string) => {
       const gen = ++loadGen.current;
@@ -184,57 +133,34 @@ export default function App() {
       const dir = await pickRepo();
       if (!dir) return;
       setRepoPath(dir);
-      setViewMode("merge"); // a fresh repo starts in the default merge view
-      await load(dir);
+      // Load the repo's default branch (fallback: first branch) into the view.
+      let def = "";
+      try {
+        def = (await defaultBranch(dir)).trim();
+      } catch {
+        /* detached / bare — fall through */
+      }
+      const brs = await listBranches(dir);
+      setBranches(brs);
+      const b = (def || brs[0] || "").trim();
+      setViewBranch(b);
+      if (b) {
+        await loadBranch(dir, b);
+      } else {
+        setData(EMPTY);
+      }
     } catch (e) {
       setFlashMsg(String(e), true);
     }
-  }, [load, setFlashMsg]);
+  }, [loadBranch, setFlashMsg]);
 
   const onRefresh = useCallback(async () => {
     if (!repoPath) return;
     setRefreshing(true);
     window.setTimeout(() => setRefreshing(false), 650);
-    if (viewMode === "branch") {
-      await loadBranch(repoPath, viewBranch);
-    } else {
-      await load(repoPath, target);
-    }
+    await loadBranch(repoPath, viewBranch);
     setFlashMsg("已重新讀取 · 剛剛");
-  }, [repoPath, viewMode, viewBranch, target, load, loadBranch, setFlashMsg]);
-
-  const onTarget = useCallback(
-    async (v: string) => {
-      if (!repoPath) return;
-      setTarget(v);
-      await load(repoPath, v); // range changes → re-fetch
-    },
-    [repoPath, load],
-  );
-
-  const switchMode = useCallback(
-    (mode: "merge" | "branch") => {
-      if (mode === viewMode || !repoPath) {
-        setViewMode(mode);
-        return;
-      }
-      setViewMode(mode);
-      setType("all");
-      setBranch("all");
-      if (mode === "branch") {
-        const b = (viewBranch || target || branches[0] || "").trim();
-        setViewBranch(b);
-        if (b) {
-          loadBranch(repoPath, b);
-        } else {
-          setData(EMPTY); // no branch to show — don't leave stale merge rows
-        }
-      } else {
-        load(repoPath, target);
-      }
-    },
-    [viewMode, repoPath, viewBranch, target, branches, loadBranch, load],
-  );
+  }, [repoPath, viewBranch, loadBranch, setFlashMsg]);
 
   const onViewBranch = useCallback(
     (b: string) => {
@@ -328,9 +254,6 @@ export default function App() {
   // ---- filtering (pure frontend, matches prototype renderVals) ----
   const filtered = useMemo(() => {
     let list = data.rows;
-    if (type !== "all")
-      list = list.filter((c) => (type === "hotfix" ? c.isHotfix : !c.isHotfix));
-    if (branch !== "all") list = list.filter((c) => c.branch === branch);
     if (date !== "all") {
       const days = { "7d": 7, "30d": 30, "90d": 90 }[date];
       const cutoff = data.maxDateMs - days * DAY;
@@ -358,7 +281,7 @@ export default function App() {
       });
     }
     return list;
-  }, [data, type, branch, date, search, contained]);
+  }, [data, date, search, contained]);
 
   // virtualized list — only the visible rows are in the DOM. Dynamic row height
   // (rows grow when expanded) is handled via measureElement.
@@ -372,19 +295,8 @@ export default function App() {
   });
   const virtualItems = virtualizer.getVirtualItems();
 
-  const targetOptions: Option[] = useMemo(() => {
-    const opts = branches.map((b) => ({ value: b, label: b }));
-    if (target && !branches.includes(target))
-      opts.unshift({ value: target, label: target });
-    return opts;
-  }, [branches, target]);
-
   const repoName = repoPath ? basename(repoPath) : "—";
-  const command =
-    viewMode === "branch"
-      ? `git log --first-parent ${viewBranch}`.trim()
-      : `git log --merges --first-parent --oneline ${target}`.trim();
-  const branchCount = data.branchOptions.length - 1;
+  const command = `git log --first-parent ${viewBranch}`.trim();
   const hasRepo = repoPath !== null;
 
   return (
@@ -405,7 +317,7 @@ export default function App() {
           />
         </div>
         <span className="app-name">MergeScope</span>
-        <span className="app-title">{repoName} — 合併歷史</span>
+        <span className="app-title">{repoName} — 分支歷史</span>
         <span className="spacer" />
       </div>
 
@@ -428,56 +340,25 @@ export default function App() {
             ↻
           </span>
         </button>
-        <div className="seg mode-seg">
-          <button
-            className={"seg-btn" + (viewMode === "merge" ? " active" : "")}
-            onClick={() => switchMode("merge")}
-            disabled={!hasRepo}
-          >
-            合併檢視
-          </button>
-          <button
-            className={"seg-btn" + (viewMode === "branch" ? " active" : "")}
-            onClick={() => switchMode("branch")}
-            disabled={!hasRepo}
-          >
-            分支檢視
-          </button>
-        </div>
         {flash && (
           <span className={"flash" + (flash.err ? " err" : "")}>
             {flash.msg}
           </span>
         )}
         <div className="target-wrap">
-          <span className="lbl">{viewMode === "branch" ? "檢視分支" : "目標分支"}</span>
+          <span className="lbl">檢視分支</span>
           <span className="arr">→</span>
           <select
             className="select"
-            value={viewMode === "branch" ? viewBranch : target}
-            onChange={(e) =>
-              viewMode === "branch"
-                ? onViewBranch(e.target.value)
-                : onTarget(e.target.value)
-            }
+            value={viewBranch}
+            onChange={(e) => onViewBranch(e.target.value)}
             disabled={!hasRepo}
           >
-            {viewMode === "branch" ? (
-              branches.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))
-            ) : (
-              <>
-                {targetOptions.length === 0 && <option value="">—</option>}
-                {targetOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </>
-            )}
+            {branches.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -493,41 +374,6 @@ export default function App() {
             placeholder="搜尋分支、訊息、作者、hash…"
           />
         </div>
-        {viewMode === "merge" && (
-          <div className="seg">
-            <button
-              className={"seg-btn" + (type === "all" ? " active" : "")}
-              onClick={() => setType("all")}
-            >
-              全部
-            </button>
-            <button
-              className={"seg-btn" + (type === "feature" ? " active" : "")}
-              onClick={() => setType("feature")}
-            >
-              feature
-            </button>
-            <button
-              className={"seg-btn" + (type === "hotfix" ? " active" : "")}
-              onClick={() => setType("hotfix")}
-            >
-              hotfix
-            </button>
-          </div>
-        )}
-        {viewMode === "merge" && (
-          <select
-            className="select-sm select-branch"
-            value={branch}
-            onChange={(e) => setBranch(e.target.value)}
-          >
-            {data.branchOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        )}
         <select
           className="select-sm"
           value={date}
@@ -569,11 +415,7 @@ export default function App() {
         ) : filtered.length === 0 ? (
           <div className="empty">
             <span className="glyph">∅</span>
-            <span className="msg">
-              {viewMode === "branch"
-                ? "沒有符合條件的 commit"
-                : "沒有符合條件的合併"}
-            </span>
+            <span className="msg">沒有符合條件的 commit</span>
           </div>
         ) : (
           <div
@@ -835,11 +677,7 @@ export default function App() {
       <div className="statusbar">
         <span className="dollar">$</span>
         <span>{command}</span>
-        <span className="right">
-          {viewMode === "branch"
-            ? `${filtered.length} commits`
-            : `${filtered.length} merges · ${branchCount} branches`}
-        </span>
+        <span className="right">{filtered.length} commits</span>
       </div>
     </div>
   );

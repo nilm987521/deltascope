@@ -9,7 +9,6 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             git::default_branch,
             git::list_branches,
-            git::list_merges,
             git::count_merge_commits,
             git::list_merge_commits,
             git::commit_diff,

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { BranchCommit, Merge, MergeCommit } from "./data-contract";
+import type { BranchCommit, MergeCommit } from "./data-contract";
 
 /** Feature-branch hue pool, assigned in first-appearance order. hotfix is fixed to hue 45 (amber). */
 const HUES = [255, 150, 300, 195, 278, 110, 330, 212, 168, 318, 132, 238, 288, 182, 58, 222];
@@ -37,7 +37,6 @@ export interface Option {
 
 export interface BuiltData {
   rows: Row[];
-  branchOptions: Option[];
   dateOptions: Option[];
   maxDateMs: number;
   totalCount: number;
@@ -71,68 +70,6 @@ function tagStyleFor(hue: number, isHotfix: boolean): CSSProperties {
 
 function nodeColor(hue: number, isHotfix: boolean): string {
   return isHotfix ? `oklch(0.72 0.16 ${hue})` : `oklch(0.74 0.13 ${hue})`;
-}
-
-/** Build the display rows and derived option lists from raw merges. */
-export function buildRows(merges: Merge[]): BuiltData {
-  const hueByBranch: Record<string, number> = {};
-  const countByBranch: Record<string, number> = {};
-  let hi = 0;
-  let maxDateMs = 0;
-
-  const rows: Row[] = merges.map((m) => {
-    const branchShort = m.branch
-      .replace(/^feature\//, "")
-      .replace(/^origin\//, "");
-    if (!(m.branch in hueByBranch)) {
-      hueByBranch[m.branch] = m.isHotfix ? 45 : HUES[hi++ % HUES.length];
-    }
-    countByBranch[m.branch] = (countByBranch[m.branch] || 0) + 1;
-    const hue = hueByBranch[m.branch];
-    const d = new Date(m.dateIso);
-    const dateMs = d.getTime();
-    if (dateMs > maxDateMs) maxDateMs = dateMs;
-    return {
-      id: m.hash,
-      hash: m.short,
-      branch: m.branch,
-      branchShort: branchShort || m.branch || "(unknown)",
-      target: mergeTargetOf(m.subject) || m.target,
-      isHotfix: m.isHotfix,
-      isMerge: true,
-      title: titleOf(branchShort) || m.subject,
-      dateMs,
-      dateLabel: `${d.getMonth() + 1}/${d.getDate()}`,
-      timeLabel: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
-      node: nodeColor(hue, m.isHotfix),
-      tagStyle: tagStyleFor(hue, m.isHotfix),
-    };
-  });
-
-  const branchList = Object.keys(countByBranch)
-    .map((b) => ({
-      branch: b,
-      short: b.replace(/^feature\//, "").replace(/^origin\//, ""),
-      count: countByBranch[b],
-    }))
-    .sort((a, b) => b.count - a.count);
-
-  const branchOptions: Option[] = [
-    { value: "all", label: `全部分支 (${branchList.length})` },
-    ...branchList.map((b) => ({
-      value: b.branch,
-      label: `${b.short || b.branch} (${b.count})`,
-    })),
-  ];
-
-  const dateOptions: Option[] = [
-    { value: "all", label: "全部時間" },
-    { value: "7d", label: "近 7 天" },
-    { value: "30d", label: "近 30 天" },
-    { value: "90d", label: "近 90 天" },
-  ];
-
-  return { rows, branchOptions, dateOptions, maxDateMs, totalCount: rows.length };
 }
 
 /** Map a raw MergeCommit into the shape the expanded row renders. */
@@ -202,5 +139,5 @@ export function buildBranchRows(commits: BranchCommit[]): BuiltData {
     { value: "90d", label: "近 90 天" },
   ];
 
-  return { rows, branchOptions: [], dateOptions, maxDateMs, totalCount: rows.length };
+  return { rows, dateOptions, maxDateMs, totalCount: rows.length };
 }
