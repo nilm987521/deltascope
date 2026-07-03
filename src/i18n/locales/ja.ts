@@ -93,4 +93,11 @@ export const ja: Dict = {
     trackHistory: "このファイルの全履歴を追跡",
     viewRename: "この名前変更を表示",
   },
+  mergeView: {
+    crumbRoot: "一覧",
+    open: "全画面表示",
+    drill: "掘り下げる",
+    emptyBrought: "このマージは新しいコミットを取り込んでいません",
+    emptyHint: "(ソースブランチは既に統合済み、または fast-forward 記録の可能性があります)",
+  },
 };
