@@ -1135,3 +1135,83 @@ input::placeholder {
 .del-field-value.ren-old {
   color: oklch(0.6 0.02 160);
 }
+
+/* ---- full-screen merge view ---- */
+.merge-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4; /* below .diff-overlay (z-index: 5) */
+  display: flex;
+  flex-direction: column;
+  background: oklch(0.17 0.01 160);
+}
+.mv-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-bottom: 1px solid oklch(0.3 0.01 160);
+  background: oklch(0.2 0.012 160);
+}
+.mv-back {
+  background: oklch(0.24 0.01 160);
+  border: 1px solid oklch(0.32 0.01 160);
+  color: oklch(0.85 0.02 160);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.mv-back:hover { background: oklch(0.28 0.01 160); }
+.mv-crumb { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.mv-seg {
+  color: oklch(0.6 0.02 160);
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+.mv-seg:hover { background: oklch(0.24 0.01 160); color: oklch(0.85 0.02 160); }
+.mv-seg.cur {
+  color: oklch(0.9 0.02 160);
+  background: oklch(0.24 0.01 160);
+  border-color: oklch(0.32 0.01 160);
+  cursor: default;
+}
+.mv-sep { color: oklch(0.45 0.01 160); margin: 0 2px; }
+.mv-meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: oklch(0.6 0.02 160);
+  font-size: 11.5px;
+}
+.mv-range { color: oklch(0.45 0.01 160); }
+.mv-body { flex: 1; overflow-y: auto; }
+.mv-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: oklch(0.45 0.01 160);
+}
+.mv-empty .glyph { font-size: 30px; }
+.mv-empty .msg { color: oklch(0.6 0.02 160); font-size: 12.5px; text-align: center; max-width: 440px; }
+.mv-empty .msg.dim { color: oklch(0.45 0.01 160); }
+
+/* nested-merge contained row: tag + drill instead of +/- stats */
+.cc-row.cc-merge { background: oklch(0.2 0.02 235 / 0.35); }
+.cc-row.cc-merge:hover { background: oklch(0.24 0.03 235 / 0.5); }
+.cc-drill {
+  flex: none;
+  font-size: 11px;
+  color: oklch(0.7 0.1 235);
+  border: 1px solid oklch(0.5 0.08 235 / 0.6);
+  border-radius: 5px;
+  padding: 2px 8px;
+}

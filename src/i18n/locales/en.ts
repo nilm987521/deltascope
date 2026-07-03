@@ -93,4 +93,11 @@ export const en: Dict = {
     trackHistory: "Track this file's full history",
     viewRename: "View this rename",
   },
+  mergeView: {
+    crumbRoot: "List",
+    open: "Full-screen view",
+    drill: "Drill in",
+    emptyBrought: "This merge brought in no new commits",
+    emptyHint: "(the source branch may already be merged, or it was a fast-forward record)",
+  },
 };

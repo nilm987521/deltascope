@@ -10,10 +10,12 @@ export interface MergeCount {
 
 /** A commit brought in by a merge (git log <merge>^1..<merge>^2 --numstat). */
 export interface MergeCommit {
+  hash: string; // %H full SHA (drill key)
   short: string; // %h
   subject: string; // %s
   author: string; // %an
   dateIso: string; // %cI
+  isMerge: boolean; // more than one parent
   add: number; // lines added (numstat total)
   del: number; // lines deleted (numstat total)
   files: number; // files touched

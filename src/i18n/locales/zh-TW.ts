@@ -92,6 +92,13 @@ export const zhTW = {
     trackHistory: "追蹤此檔案完整歷史",
     viewRename: "檢視這次更名",
   },
+  mergeView: {
+    crumbRoot: "清單",
+    open: "全螢幕檢視",
+    drill: "鑽入",
+    emptyBrought: "此合併未帶進任何新 commit",
+    emptyHint: "(來源分支可能早已併入,或為 fast-forward 記錄)",
+  },
 } as const;
 
 // zhTW 以 `as const` 宣告以利下方 TKey 產生字面量聯集,但這也讓每個 leaf 變成

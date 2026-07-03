@@ -8,12 +8,16 @@ export const HUES = [
 ];
 
 export interface ContainedCommit {
-  hash: string;
+  hash: string; // short SHA (diff argument)
+  fullHash: string; // full SHA (drill argument to list_merge_commits)
   msg: string;
   author: string;
   when: string;
   add: number;
   del: number;
+  isMerge: boolean; // this contained commit is itself a merge
+  branchShort: string; // source branch parsed from subject (merges only; "" otherwise)
+  target: string; // "into X" target (merges only; "" otherwise)
 }
 
 export interface Row {
@@ -60,6 +64,13 @@ export function mergeTargetOf(subject: string): string {
   return m ? m[1].replace(/^origin\//, "") : "";
 }
 
+/** From a merge subject "Merge branch 'x' into y" pull the source branch ('x').
+ *  Mirrors the Rust parse_branch (first single-quoted token). "" when absent. */
+export function mergeSourceOf(subject: string): string {
+  const m = subject.match(/'([^']+)'/);
+  return m ? m[1].replace(/^origin\//, "") : "";
+}
+
 export function tagStyleFor(hue: number, isHotfix: boolean): CSSProperties {
   const c = isHotfix ? 0.09 : 0.05;
   const ct = isHotfix ? 0.14 : 0.11;
@@ -75,16 +86,20 @@ function nodeColor(hue: number, isHotfix: boolean): string {
   return isHotfix ? `oklch(0.72 0.16 ${hue})` : `oklch(0.74 0.13 ${hue})`;
 }
 
-/** Map a raw MergeCommit into the shape the expanded row renders. */
+/** Map a raw MergeCommit into the shape the contained list renders. */
 export function toContained(c: MergeCommit): ContainedCommit {
   const d = new Date(c.dateIso);
   return {
     hash: c.short,
+    fullHash: c.hash,
     msg: c.subject,
     author: c.author,
     when: `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`,
     add: c.add,
     del: c.del,
+    isMerge: c.isMerge,
+    branchShort: c.isMerge ? mergeSourceOf(c.subject) : "",
+    target: c.isMerge ? mergeTargetOf(c.subject) : "",
   };
 }
 

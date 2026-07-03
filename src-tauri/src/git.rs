@@ -18,10 +18,12 @@ pub struct MergeCount {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MergeCommit {
-    pub short: String,
-    pub subject: String,
-    pub author: String,
-    pub date_iso: String,
+    pub hash: String,     // %H full SHA — drill key for list_merge_commits
+    pub short: String,    // %h
+    pub subject: String,  // %s
+    pub author: String,   // %an
+    pub date_iso: String, // %cI
+    pub is_merge: bool,   // %P has more than one parent
     pub add: u32,   // lines added across the commit (numstat)
     pub del: u32,   // lines deleted across the commit (numstat)
     pub files: u32, // files touched
@@ -167,7 +169,7 @@ pub fn list_merge_commits(repo: String, merge: String) -> Result<Vec<MergeCommit
     // Note: fast-forward / parent-less merges fail → return an empty vec.
     // --numstat appends "<add>\t<del>\t<path>" rows after each commit's header line, so the
     // per-commit add/del/files totals come from the same call that lists the commits.
-    let fmt = format!("--pretty=format:%h{US}%s{US}%an{US}%cI");
+    let fmt = format!("--pretty=format:%H{US}%h{US}%s{US}%an{US}%cI{US}%P");
     let range = format!("{merge}^1..{merge}^2");
     let out = match run_git(&repo, &["log", "--numstat", &fmt, &range]) {
         Ok(s) => s,
@@ -176,22 +178,22 @@ pub fn list_merge_commits(repo: String, merge: String) -> Result<Vec<MergeCommit
     let mut commits: Vec<MergeCommit> = Vec::new();
     for line in out.lines() {
         if line.contains(US) {
-            // header line for a new commit
             let f: Vec<&str> = line.split(US).collect();
-            if f.len() < 4 {
+            if f.len() < 6 {
                 continue;
             }
             commits.push(MergeCommit {
-                short: f[0].to_string(),
-                subject: f[1].to_string(),
-                author: f[2].to_string(),
-                date_iso: f[3].to_string(),
+                hash: f[0].to_string(),
+                short: f[1].to_string(),
+                subject: f[2].to_string(),
+                author: f[3].to_string(),
+                date_iso: f[4].to_string(),
+                is_merge: f[5].split_whitespace().count() > 1,
                 add: 0,
                 del: 0,
                 files: 0,
             });
         } else if let Some(c) = commits.last_mut() {
-            // numstat row: "<add>\t<del>\t<path>" ("-" for binary)
             let mut it = line.splitn(3, '\t');
             let (a, d) = (it.next(), it.next());
             if it.next().is_none() {
@@ -769,5 +771,60 @@ index 000..333
         assert!(!json.contains("old_path"), "no snake_case leaks: {json}");
 
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    /// A merge whose brought-in range itself contains a merge: list_merge_commits must
+    /// flag the nested merge via is_merge and expose a full-length hash for drilling.
+    #[test]
+    fn list_merge_commits_flags_nested_merges() {
+        let mut dir: PathBuf = std::env::temp_dir();
+        dir.push(format!("deltascope_nested_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let repo = dir.to_string_lossy().to_string();
+
+        git(&repo, &["init", "-b", "main"]);
+        git(&repo, &["config", "user.email", "t@t"]);
+        git(&repo, &["config", "user.name", "Tester"]);
+        fs::write(dir.join("a.txt"), "1").unwrap();
+        git(&repo, &["add", "."]);
+        git(&repo, &["commit", "-m", "init"]);
+
+        git(&repo, &["checkout", "-b", "feature/demo"]);
+        fs::write(dir.join("b.txt"), "2").unwrap();
+        git(&repo, &["add", "."]);
+        git(&repo, &["commit", "-m", "add feature work"]);
+
+        // sub-branch off feature, then merge it back into feature → a NESTED merge
+        git(&repo, &["checkout", "-b", "sub"]);
+        fs::write(dir.join("c.txt"), "3").unwrap();
+        git(&repo, &["add", "."]);
+        git(&repo, &["commit", "-m", "sub work"]);
+        git(&repo, &["checkout", "feature/demo"]);
+        git(&repo, &["merge", "--no-ff", "sub", "-m", "Merge branch 'sub' into feature/demo"]);
+
+        // top-level merge onto main
+        git(&repo, &["checkout", "main"]);
+        git(&repo, &["merge", "--no-ff", "feature/demo", "-m", "Merge branch 'feature/demo' into main"]);
+
+        let bcs = list_branch_commits(repo.clone(), "main".to_string()).unwrap();
+        let top = &bcs[0];
+        assert!(top.is_merge);
+
+        let contained = list_merge_commits(repo.clone(), top.hash.clone()).unwrap();
+        // range brought in: "add feature work", "sub work", and the nested "Merge branch 'sub'..."
+        let nested = contained
+            .iter()
+            .find(|c| c.subject.starts_with("Merge branch 'sub'"))
+            .expect("nested merge present in the range");
+        assert!(nested.is_merge, "nested merge must be flagged is_merge");
+        assert_eq!(nested.hash.len(), 40, "full 40-char SHA for drilling");
+
+        let regular = contained
+            .iter()
+            .find(|c| c.subject == "add feature work")
+            .expect("regular commit present");
+        assert!(!regular.is_merge, "regular commit is not a merge");
+        assert!(!regular.hash.is_empty());
     }
 }
