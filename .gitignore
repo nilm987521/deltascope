@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Re-include package.json (a global ~/.config/git/ignore rule excludes it)
+!package.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
