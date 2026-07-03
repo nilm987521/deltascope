@@ -99,39 +99,6 @@ src-tauri/
   src/lib.rs            Tauri builder + command registration + dialog plugin
 ```
 
-## Notes / deliberate choices
-
-- **Custom titlebar.** Native decorations are off (`tauri.conf.json`); the three
-  traffic-light dots are wired to close / minimize / zoom, and the bar is a drag
-  region.
-- **i18n is a lightweight, zero-dependency layer.** `zh-TW` is the base
-  dictionary; a `Dict` type derived from it forces `en`/`ja` to stay structurally
-  identical, so a missing translation is a `tsc` error, not a runtime surprise.
-  `t()` does `{name}` interpolation and falls back to `zh-TW`.
-- **Commit counts fill in the background.** Git can't give a merge's
-  contained-commit count without a per-merge lookup, so the list renders
-  immediately and a background `count_merge_commits` call (cheap
-  `git rev-list --count <h>^1..^2` per merge) populates the `N commits` column a
-  moment later; the slot is dimmed until it arrives.
-- **Virtualized lists.** Every long list (branch history and the merge view) is
-  windowed with `@tanstack/react-virtual` (dynamic row height via
-  `measureElement`, so inline expansion still works) — only visible rows are in
-  the DOM, so it stays smooth at thousands of commits.
-- **Filtering is client-side.** History loads once per view; type/branch/date/
-  search filter in memory.
-- **Large repos.** The list commands have no `--max-count` paging — the whole
-  history loads at once (fine for typical repos; virtualization keeps rendering
-  cheap). For repos with tens of thousands of entries, adding `--skip`/
-  `--max-count` paging would make client-side filtering operate over loaded
-  pages only.
-
-## Development / quality gates
-
-- **Type check + lint:** `npm run build` (`tsc` strict) and `npm run lint`
-  (ESLint — adds what `tsc` can't see, notably react-hooks dependency checking).
-- **Backend tests:** `cargo test` inside `src-tauri/` — each builds a throwaway
-  repo with real merges and asserts against real `git` output.
-
 ## License
 
 DeltaScope is licensed under **CC BY-NC-ND 4.0** (Attribution-NonCommercial-

@@ -88,31 +88,6 @@ src-tauri/
   src/lib.rs            Tauri builder + 指令註冊 + dialog plugin
 ```
 
-## 註記 / 刻意的設計選擇
-
-- **自訂標題列。** 關閉了原生視窗外框(`tauri.conf.json`);三顆紅綠燈點分別接到
-  關閉 / 最小化 / 縮放,整條標題列是拖曳區。
-- **i18n 是輕量、零依賴的自製層。** `zh-TW` 是基準字典;從它推導出的 `Dict` 型別
-  強制 `en`/`ja` 保持結構完全相同,所以少翻一個 key 會是 `tsc` 編譯錯誤,而不是執行期才爆。
-  `t()` 支援 `{name}` 插值,缺字時 fallback 到 `zh-TW`。
-- **commit 數在背景補上。** Git 無法不做逐 merge 查詢就給出某個 merge 的內含 commit 數,
-  所以清單先立刻顯示,背景再以一支便宜的 `git rev-list --count <h>^1..^2`
-  (每個 merge 一支)把 `N commits` 欄補上;數字到之前該欄位是暗的。
-- **清單全部虛擬化。** 每個長清單(分支歷史與合併檢視)都用
-  `@tanstack/react-virtual` 開視窗(以 `measureElement` 支援動態列高,所以就地展開仍可用)
-  —— 只有可見的列在 DOM 裡,上千個 commit 也能保持流暢。
-- **篩選在前端做。** 每個檢視的歷史載入一次;類型 / 分支 / 日期 / 搜尋都在記憶體裡篩。
-- **大型 repo。** 這些列表指令沒有 `--max-count` 分頁 —— 整段歷史一次載入
-  (對一般 repo 沒問題;虛擬化讓渲染很便宜)。若 repo 有數萬筆,加上
-  `--skip`/`--max-count` 分頁會讓前端篩選只作用在已載入的分頁上。
-
-## 開發 / 品質關卡
-
-- **型別檢查 + lint:** `npm run build`(`tsc` strict)與 `npm run lint`
-  (ESLint —— 補上 `tsc` 看不到的東西,尤其是 react-hooks 依賴檢查)。
-- **後端測試:** 在 `src-tauri/` 內 `cargo test` —— 每個測試會建一個含真實 merge 的
-  臨時 repo,對真實 `git` 輸出做斷言。
-
 ## 授權
 
 DeltaScope 採用 **CC BY-NC-ND 4.0**(姓名標示-非商業性-禁止改作)授權。
