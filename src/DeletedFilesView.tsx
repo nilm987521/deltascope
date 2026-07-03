@@ -3,6 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { listDeletedFiles } from "./git";
 import type { DeletedFile } from "./data-contract";
 import { HUES, tagStyleFor } from "./rows";
+import { useI18n } from "./i18n";
 
 type Mode = "list" | "commit";
 
@@ -40,6 +41,7 @@ interface Props {
 }
 
 export default function DeletedFilesView({ repoPath, reloadNonce, onFlash }: Props) {
+  const { t } = useI18n();
   const [files, setFiles] = useState<DeletedFile[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -155,7 +157,7 @@ export default function DeletedFilesView({ repoPath, reloadNonce, onFlash }: Pro
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      onFlash("已複製指令");
+      onFlash(t("common.copied"));
     } catch (e) {
       onFlash(String(e), true);
     }
@@ -199,7 +201,7 @@ export default function DeletedFilesView({ repoPath, reloadNonce, onFlash }: Pro
             className="search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜尋路徑、檔名、作者、hash…"
+            placeholder={t("deleted.searchPlaceholder")}
           />
         </div>
         <select
@@ -207,7 +209,7 @@ export default function DeletedFilesView({ repoPath, reloadNonce, onFlash }: Pro
           value={extFilter}
           onChange={(e) => setExtFilter(e.target.value)}
         >
-          <option value="all">全部類型（{extOptions.length}）</option>
+          <option value="all">{t("filter.allTypes", { n: extOptions.length })}</option>
           {extOptions.map((x) => (
             <option key={x} value={x}>
               {x}
@@ -219,7 +221,7 @@ export default function DeletedFilesView({ repoPath, reloadNonce, onFlash }: Pro
           value={branchFilter}
           onChange={(e) => setBranchFilter(e.target.value)}
         >
-          <option value="all">全部分支（{branchOptions.length}）</option>
+          <option value="all">{t("filter.allBranches", { n: branchOptions.length })}</option>
           {branchOptions.map((b) => (
             <option key={b} value={b}>
               {b}
@@ -231,17 +233,17 @@ export default function DeletedFilesView({ repoPath, reloadNonce, onFlash }: Pro
             className={"seg-btn" + (mode === "list" ? " active" : "")}
             onClick={() => setMode("list")}
           >
-            檔案清單
+            {t("deleted.tabFileList")}
           </button>
           <button
             className={"seg-btn" + (mode === "commit" ? " active" : "")}
             onClick={() => setMode("commit")}
           >
-            依 commit
+            {t("common.byCommit")}
           </button>
         </div>
         <div className="result-count">
-          已刪除 <b>{filtered.length}</b> / {files.length} · commit {commitCount}
+          {t("deleted.deletedCountPre")} <b>{filtered.length}</b> / {files.length} · commit {commitCount}
         </div>
       </div>
 
@@ -252,7 +254,7 @@ export default function DeletedFilesView({ repoPath, reloadNonce, onFlash }: Pro
             {!hasRepo ? (
               <div className="empty">
                 <span className="glyph">🗑</span>
-                <span className="msg">選擇一個 Git repository 開始</span>
+                <span className="msg">{t("repo.pickStart")}</span>
               </div>
             ) : loading ? (
               <div className="empty">
@@ -262,15 +264,15 @@ export default function DeletedFilesView({ repoPath, reloadNonce, onFlash }: Pro
                 >
                   ↻
                 </span>
-                <span className="msg">讀取中…</span>
+                <span className="msg">{t("common.loading")}</span>
               </div>
             ) : filtered.length === 0 ? (
               <div className="empty">
                 <span className="glyph">∅</span>
                 <span className="msg">
                   {files.length === 0
-                    ? "此 repository 沒有被刪除的檔案"
-                    : "沒有符合條件的檔案"}
+                    ? t("repo.noDeleted")
+                    : t("common.noMatch")}
                 </span>
               </div>
             ) : mode === "list" ? (
@@ -331,10 +333,10 @@ export default function DeletedFilesView({ repoPath, reloadNonce, onFlash }: Pro
           {selected && (
             <aside className="del-detail">
               <div className="del-detail-top">
-                <span className="del-detail-eyebrow">已刪除檔案</span>
+                <span className="del-detail-eyebrow">{t("deleted.eyebrow")}</span>
                 <button
                   className="del-detail-close"
-                  title="關閉"
+                  title={t("titlebar.close")}
                   onClick={() => setSel(null)}
                 >
                   ✕
@@ -348,29 +350,29 @@ export default function DeletedFilesView({ repoPath, reloadNonce, onFlash }: Pro
               </div>
 
               <div className="del-field">
-                <div className="del-field-label">刪除 commit</div>
+                <div className="del-field-label">{t("deleted.deleteCommit")}</div>
                 <div className="del-field-value">
                   <span className="del-hash">{selected.short}</span>{" "}
                   {selected.subject}
                 </div>
               </div>
               <div className="del-field">
-                <div className="del-field-label">作者</div>
+                <div className="del-field-label">{t("common.author")}</div>
                 <div className="del-field-value">◍ {selected.author}</div>
               </div>
               <div className="del-field">
-                <div className="del-field-label">分支</div>
+                <div className="del-field-label">{t("common.branch")}</div>
                 <div className="del-field-value">{selected.branch || "—"}</div>
               </div>
               <div className="del-field">
-                <div className="del-field-label">時間</div>
+                <div className="del-field-label">{t("common.time")}</div>
                 <div className="del-field-value">
                   {whenLabel(selected.dateIso)}
                 </div>
               </div>
 
               <div className="del-field">
-                <div className="del-field-label">還原此檔案</div>
+                <div className="del-field-label">{t("deleted.restore")}</div>
                 <div className="del-cmd">
                   <code>
                     git checkout {selected.short}^ -- {selected.path}
@@ -383,12 +385,12 @@ export default function DeletedFilesView({ repoPath, reloadNonce, onFlash }: Pro
                       )
                     }
                   >
-                    複製
+                    {t("common.copy")}
                   </button>
                 </div>
               </div>
               <div className="del-field">
-                <div className="del-field-label">檢視刪除前內容</div>
+                <div className="del-field-label">{t("deleted.viewBefore")}</div>
                 <div className="del-cmd">
                   <code>
                     git show {selected.short}^:{selected.path}
@@ -399,7 +401,7 @@ export default function DeletedFilesView({ repoPath, reloadNonce, onFlash }: Pro
                       copy(`git show ${selected.short}^:${selected.path}`)
                     }
                   >
-                    複製
+                    {t("common.copy")}
                   </button>
                 </div>
               </div>
