@@ -184,7 +184,7 @@ export default function App() {
       await loadBranch(repoPath, viewBranch);
     }
     setFlashMsg(t("status.reloaded"));
-  }, [repoPath, view, viewBranch, loadBranch, setFlashMsg]);
+  }, [repoPath, view, viewBranch, loadBranch, setFlashMsg, t]);
 
   const onViewBranch = useCallback(
     (b: string) => {
