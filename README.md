@@ -30,6 +30,19 @@ yourself; the app never runs them. Point it at any repo without worry.
 - **List virtualization:** `@tanstack/react-virtual`
 - **Folder picker:** `@tauri-apps/plugin-dialog`
 
+## Install (macOS)
+
+The released `.dmg` is **ad-hoc signed, not notarized**. Because it's downloaded
+from the internet, macOS quarantines it, so the first launch is blocked
+("cannot verify the developer"). Clear the quarantine flag once after installing:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/DeltaScope.app
+```
+
+Alternatively, right-click the app → **Open**, or go to **System Settings →
+Privacy & Security → Open Anyway**. This is a one-time step per download.
+
 ## Run
 
 Requires Node, the Rust toolchain, and `git` on PATH.

@@ -24,6 +24,19 @@ checkout、reset,也不會更動任何一個檔案。它提供的還原與檢視
 - **清單虛擬化:** `@tanstack/react-virtual`
 - **資料夾選擇:** `@tauri-apps/plugin-dialog`
 
+## 安裝(macOS)
+
+發佈的 `.dmg` 是 **ad-hoc 簽章、未經公證(notarization)**。因為是從網路下載的,
+macOS 會把它加上隔離標記,導致第一次啟動被擋(「無法驗證開發者」)。安裝後執行一次
+以下指令清除隔離標記即可:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/DeltaScope.app
+```
+
+或者:對 app 按右鍵 →**打開**,或到**系統設定 → 隱私權與安全性 →「仍要打開」**。
+這是每次下載只需做一次的動作。
+
 ## 執行
 
 需要 Node、Rust 工具鏈,以及 PATH 上的 `git`。
