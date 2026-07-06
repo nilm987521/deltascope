@@ -12,16 +12,6 @@
 UI 是自訂視窗外框的桌面視窗;後端直接呼叫系統的 `git` CLI(不用 libgit2),
 而且所有面向使用者的字串都提供**繁體中文、英文、日文**三種語言。
 
-## 螢幕截圖
-
-| Branch(分支)檢視 | 就地展開一個 merge |
-| --- | --- |
-| ![Branch 檢視 —— 某分支的 first-parent 歷史,每個 merge 是一顆彩色藥丸](screenshots/branch-view.png) | ![單擊一個 merge 就地展開,預覽它帶進來的 commit](screenshots/merge-view.png) |
-
-| Remove(已刪除)檢視 | Rename(已更名)檢視 |
-| --- | --- |
-| ![Remove 檢視 —— 整段歷史中被刪除的每個檔案,附還原指令](screenshots/remove-view.png) | ![Rename 檢視 —— 整段歷史中被搬移或更名的每個檔案,附相似度分數](screenshots/rename-view.png) |
-
 ## 技術組成
 
 - **前端:** React 18 + TypeScript(strict)+ Vite
@@ -52,12 +42,22 @@ npm run tauri build    # 產出正式版打包
     若某個內含 commit 本身也是 merge,就能再往下鑽一層(`main › feature/x › temp`),
     無深度上限。打開一個 merge 永遠不會落到空白 diff(git 對 merge commit 不輸出 patch);
     它一律顯示這個 merge 帶進了什麼。
+
+  ![Branch 檢視 —— 某分支的 first-parent 歷史,每個 merge 是一顆彩色藥丸](screenshots/branch-view.png)
+
+  ![單擊一個 merge 就地展開,預覽它帶進來的 commit](screenshots/merge-view.png)
+
 - **Remove(已刪除檔案)** —— 整段歷史中被刪除的每一個檔案
   (`git log --all --diff-filter=D`)。每一列顯示刪除的 commit、作者、來源分支;
   詳情面板提供可複製的還原指令,以及檢視「刪除前內容」的指令。
+
+  ![Remove 檢視 —— 整段歷史中被刪除的每個檔案,附還原指令](screenshots/remove-view.png)
+
 - **Rename(已更名檔案)** —— 整段歷史中被更名或搬移的每一個檔案
   (`git log --all --diff-filter=R -M`)。用相似度分數區分「純搬移」與「搬移又改動內容」,
   並提供追蹤該檔案完整歷史、以及檢視這次更名的指令。
+
+  ![Rename 檢視 —— 整段歷史中被搬移或更名的每個檔案,附相似度分數](screenshots/rename-view.png)
 
 每個檢視都在前端(client-side)篩選:依類型 / 分支 / 日期區間 / 全文搜尋
 (路徑、檔名、作者、hash、訊息)。只有在 Branch 檢視中切換**目標分支**會重新抓資料

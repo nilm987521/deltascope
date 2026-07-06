@@ -17,16 +17,6 @@ The UI is a custom-chrome desktop window; the backend shells out to the system
 `git` CLI (no libgit2), and every user-facing string is available in
 Traditional Chinese, English, and Japanese.
 
-## Screenshots
-
-| Branch view | A merge, expanded inline |
-| --- | --- |
-| ![Branch view — a branch's first-parent history, each merge a colored pill](screenshots/branch-view.png) | ![A merge single-clicked to expand inline, peeking at the commits it brought in](screenshots/merge-view.png) |
-
-| Remove view | Rename view |
-| --- | --- |
-| ![Remove view — every file deleted across history, with a restore command](screenshots/remove-view.png) | ![Rename view — every file moved or renamed, with a similarity score](screenshots/rename-view.png) |
-
 ## Stack
 
 - **Frontend:** React 18 + TypeScript (strict) + Vite
@@ -60,14 +50,24 @@ restarts and otherwise follows the system language.
     that is *itself* a merge drills one level deeper (`main › feature/x › temp`),
     with no depth limit. Opening a merge never lands on an empty diff (git emits
     no patch for a merge commit); it always shows what the merge introduced.
+
+  ![Branch view — a branch's first-parent history, each merge a colored pill](screenshots/branch-view.png)
+
+  ![A merge single-clicked to expand inline, peeking at the commits it brought in](screenshots/merge-view.png)
+
 - **Remove** — every file deleted anywhere in history
   (`git log --all --diff-filter=D`). Each row shows the deleting commit, author,
   and source branch; the detail panel offers a copy-ready restore command and a
   command to view the file's content just before deletion.
+
+  ![Remove view — every file deleted across history, with a restore command](screenshots/remove-view.png)
+
 - **Rename** — every file renamed or moved anywhere in history
   (`git log --all --diff-filter=R -M`). A similarity score separates a pure move
   from a move that also edited content, with commands to track the file's full
   history and to view the rename.
+
+  ![Rename view — every file moved or renamed, with a similarity score](screenshots/rename-view.png)
 
 Each view filters client-side: by type / branch / date range / free-text search
 (path, filename, author, hash, message). Changing the **target branch** in the
