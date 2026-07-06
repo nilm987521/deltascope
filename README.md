@@ -17,6 +17,12 @@ The UI is a custom-chrome desktop window; the backend shells out to the system
 `git` CLI (no libgit2), and every user-facing string is available in
 Traditional Chinese, English, and Japanese.
 
+**Read-only by design.** DeltaScope only ever *queries* your repository — it runs
+read-only `git` commands (`log`, `show`, `rev-list`, `branch`, …) and never
+writes to it. It does not commit, checkout, reset, or modify a single file. The
+restore and view commands it surfaces are copied to your clipboard for you to run
+yourself; the app never runs them. Point it at any repo without worry.
+
 ## Stack
 
 - **Frontend:** React 18 + TypeScript (strict) + Vite

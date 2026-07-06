@@ -12,6 +12,11 @@
 UI 是自訂視窗外框的桌面視窗;後端直接呼叫系統的 `git` CLI(不用 libgit2),
 而且所有面向使用者的字串都提供**繁體中文、英文、日文**三種語言。
 
+**設計上就是唯讀。** DeltaScope 只會**查詢**你的 repository —— 它執行的都是唯讀的
+`git` 指令(`log`、`show`、`rev-list`、`branch` 等),絕不寫入。它不會 commit、
+checkout、reset,也不會更動任何一個檔案。它提供的還原與檢視指令只是幫你複製到剪貼簿,
+由你自己執行;應用程式本身從不執行它們。可以放心指向任何 repo。
+
 ## 技術組成
 
 - **前端:** React 18 + TypeScript(strict)+ Vite
