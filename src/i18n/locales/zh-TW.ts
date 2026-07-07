@@ -29,6 +29,7 @@ export const zhTW = {
     pick: "選擇 Git repository",
     pickStart: "選擇一個 Git repository 開始",
     pickFolder: "選擇資料夾…",
+    lastOpenFailed: "上次的 repo 已無法開啟：{path}",
     noDeleted: "此 repository 沒有被刪除的檔案",
     noRenamed: "此 repository 沒有更名/搬移過的檔案",
   },

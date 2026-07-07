@@ -30,6 +30,7 @@ export const ja: Dict = {
     pick: "Git リポジトリを選択",
     pickStart: "Git リポジトリを選択して開始",
     pickFolder: "フォルダを選択…",
+    lastOpenFailed: "前回の repository を開けませんでした：{path}",
     noDeleted: "このリポジトリに削除されたファイルはありません",
     noRenamed: "このリポジトリに名前変更/移動されたファイルはありません",
   },

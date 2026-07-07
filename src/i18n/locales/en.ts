@@ -30,6 +30,7 @@ export const en: Dict = {
     pick: "Select Git repository",
     pickStart: "Select a Git repository to begin",
     pickFolder: "Choose folder…",
+    lastOpenFailed: "Couldn't open your last repo: {path}",
     noDeleted: "This repository has no deleted files",
     noRenamed: "This repository has no renamed/moved files",
   },
