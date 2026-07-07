@@ -438,9 +438,6 @@ input::placeholder {
   font-family: "IBM Plex Mono", monospace;
   font-size: 11px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 210px;
   flex: none;
   border: 1px solid transparent;
 }
