@@ -146,19 +146,17 @@ export default function App() {
     [setFlashMsg],
   );
 
-  const onPick = useCallback(async () => {
-    try {
-      const dir = await pickRepo();
-      if (!dir) return;
-      setRepoPath(dir);
-      // Load the repo's default branch (fallback: first branch) into the view.
+  const openRepo = useCallback(
+    async (dir: string) => {
+      // Resolve the default branch (fallback: first branch) into the view.
       let def = "";
       try {
         def = (await defaultBranch(dir)).trim();
       } catch {
         /* detached / bare — fall through */
       }
-      const brs = await listBranches(dir);
+      const brs = await listBranches(dir); // throws for a gone/non-git path
+      setRepoPath(dir);
       setBranches(brs);
       const b = (def || brs[0] || "").trim();
       setViewBranch(b);
@@ -167,10 +165,24 @@ export default function App() {
       } else {
         setData(EMPTY);
       }
+      try {
+        localStorage.setItem("deltascope.lastRepo", dir);
+      } catch {
+        // ignore persistence failure
+      }
+    },
+    [loadBranch],
+  );
+
+  const onPick = useCallback(async () => {
+    const dir = await pickRepo();
+    if (!dir) return;
+    try {
+      await openRepo(dir);
     } catch (e) {
       setFlashMsg(String(e), true);
     }
-  }, [loadBranch, setFlashMsg]);
+  }, [openRepo, setFlashMsg]);
 
   const onRefresh = useCallback(async () => {
     if (!repoPath) return;
