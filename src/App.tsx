@@ -157,7 +157,10 @@ export default function App() {
       } catch {
         /* detached / bare — fall through */
       }
-      const brs = await listBranches(dir); // throws for a gone/non-git path
+      // Order matters: listBranches (which throws for a gone/non-git path)
+      // must run before setRepoPath, so a failed startup restore leaves the
+      // app in a clean empty state instead of a half-opened repo.
+      const brs = await listBranches(dir);
       setRepoPath(dir);
       setBranches(brs);
       const b = (def || brs[0] || "").trim();
