@@ -60,6 +60,8 @@ export default function App() {
 
   // repo / data
   const [repoPath, setRepoPath] = useState<string | null>(null);
+  const [lastRepoError, setLastRepoError] = useState<string | null>(null);
+  const didRestore = useRef(false); // guards React strict-mode double-invoke
   const [data, setData] = useState<BuiltData>(EMPTY);
   const [branches, setBranches] = useState<string[]>([]);
   const [viewBranch, setViewBranch] = useState("");
@@ -174,9 +176,32 @@ export default function App() {
     [loadBranch],
   );
 
+  // On launch, re-open the last repo (if any). Clear + warn if it's gone.
+  useEffect(() => {
+    if (didRestore.current) return;
+    didRestore.current = true;
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem("deltascope.lastRepo");
+    } catch {
+      // ignore read failure
+    }
+    if (!saved) return;
+    openRepo(saved).catch(() => {
+      try {
+        localStorage.removeItem("deltascope.lastRepo");
+      } catch {
+        // ignore
+      }
+      setRepoPath(null);
+      setLastRepoError(saved);
+    });
+  }, [openRepo]);
+
   const onPick = useCallback(async () => {
     const dir = await pickRepo();
     if (!dir) return;
+    setLastRepoError(null);
     try {
       await openRepo(dir);
     } catch (e) {
@@ -484,6 +509,17 @@ export default function App() {
         {flash && (
           <span className={"flash" + (flash.err ? " err" : "")}>
             {flash.msg}
+          </span>
+        )}
+        {lastRepoError && (
+          <span
+            className="flash err"
+            role="button"
+            style={{ cursor: "pointer" }}
+            title={String(lastRepoError)}
+            onClick={() => setLastRepoError(null)}
+          >
+            {t("repo.lastOpenFailed", { path: tildify(lastRepoError) })} ✕
           </span>
         )}
         {view === "branches" && (
