@@ -20,11 +20,11 @@ function extOf(p: string): string {
 }
 function dateLabel(iso: string): string {
   const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
 }
 function whenLabel(iso: string): string {
   const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 /** A rename that also edited content (similarity < 100%) is a "搬移+改動". */
 const isEdited = (r: RenamedFile) => r.score < 100;
