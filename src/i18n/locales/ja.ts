@@ -26,6 +26,10 @@ export const ja: Dict = {
     segRemove: "削除",
     segRename: "名前変更",
   },
+  tabbar: {
+    newTab: "新しいタブ（別のリポジトリを開く）",
+    multiRepo: "複数リポジトリのマージ履歴",
+  },
   repo: {
     pick: "Git リポジトリを選択",
     pickStart: "Git リポジトリを選択して開始",

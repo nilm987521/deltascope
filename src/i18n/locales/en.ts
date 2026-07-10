@@ -26,6 +26,10 @@ export const en: Dict = {
     segRemove: "Remove",
     segRename: "Rename",
   },
+  tabbar: {
+    newTab: "New tab (open another repo)",
+    multiRepo: "Multi-repo merge history",
+  },
   repo: {
     pick: "Select Git repository",
     pickStart: "Select a Git repository to begin",
