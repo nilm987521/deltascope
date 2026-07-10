@@ -139,6 +139,111 @@ input::placeholder {
   background: oklch(0.3 0.01 160 / 0.7);
 }
 
+/* ---- tab bar (multi-repo) ---- */
+.tabbar {
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  background: oklch(0.13 0.008 160);
+  border-bottom: 1px solid oklch(0.24 0.01 160);
+  overflow-x: auto;
+  -webkit-app-region: no-drag;
+}
+.tabbar::-webkit-scrollbar {
+  height: 0;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 7px 0 11px;
+  max-width: 240px;
+  flex: none;
+  border: 1px solid oklch(0.26 0.01 160);
+  border-radius: 8px;
+  background: oklch(0.165 0.008 160);
+  color: oklch(0.58 0.02 160);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab:hover {
+  background: oklch(0.2 0.008 160);
+  color: oklch(0.75 0.02 160);
+}
+.tab.active {
+  background: oklch(0.21 0.01 160);
+  color: oklch(0.9 0.02 160);
+  border-color: var(--tab-color, oklch(0.5 0.05 160));
+  box-shadow: inset 0 0 0 1px var(--tab-color, transparent);
+}
+.tab.dragover {
+  border-color: oklch(0.62 0.06 160);
+  background: oklch(0.24 0.01 160);
+}
+.tab-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex: none;
+  color: oklch(0.5 0.02 160);
+  font-size: 15px;
+  line-height: 1;
+}
+.tab-close:hover {
+  background: oklch(0.3 0.01 160 / 0.7);
+  color: oklch(0.82 0.1 25);
+}
+.tab-new {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid oklch(0.3 0.01 160);
+  border-radius: 7px;
+  background: oklch(0.18 0.008 160);
+  color: oklch(0.6 0.02 160);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tab-new:hover {
+  background: oklch(0.24 0.01 160);
+  color: oklch(0.85 0.02 160);
+}
+
+/* ---- workspaces: one per open tab, stacked; only the active one is shown ---- */
+.workspaces {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.workspace {
+  position: absolute;
+  inset: 0;
+  flex-direction: column;
+}
+
 /* ---- toolbar ---- */
 .toolbar {
   height: 52px;

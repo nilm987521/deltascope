@@ -25,6 +25,10 @@ export const zhTW = {
     segRemove: "刪除",
     segRename: "更名",
   },
+  tabbar: {
+    newTab: "新分頁（開啟另一個 Repo）",
+    multiRepo: "多 Repo 合併歷史",
+  },
   repo: {
     pick: "選擇 Git repository",
     pickStart: "選擇一個 Git repository 開始",
