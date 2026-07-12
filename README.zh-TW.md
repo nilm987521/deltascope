@@ -108,5 +108,6 @@ src-tauri/
 
 ## 授權
 
-DeltaScope 採用 **CC BY-NC-ND 4.0**(姓名標示-非商業性-禁止改作)授權。
-你可以免費使用與分享,但不可販售,也不可散布修改後的版本。詳見 [LICENSE](LICENSE)。
+DeltaScope 採用 **GNU Affero General Public License v3.0**(AGPL-3.0)授權。
+你可以自由使用、修改與散布,但衍生作品(包含透過網路提供的服務)必須以相同授權釋出,
+並提供其原始碼。詳見 [LICENSE](LICENSE)。

@@ -1,10 +1,10 @@
 [package]
 name = "deltascope"
 version = "0.1.1"
-description = "DeltaScope — Git 合併歷史可視化"
-authors = ["Daniel"]
+description = "DeltaScope — visualize your repo's merge & branch history as a timeline"
+authors = ["Nilm"]
 edition = "2021"
-license = "CC-BY-NC-ND-4.0"
+license = "AGPL-3.0-only"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -120,6 +120,7 @@ src-tauri/
 
 ## License
 
-DeltaScope is licensed under **CC BY-NC-ND 4.0** (Attribution-NonCommercial-
-NoDerivatives). You may use and share it free of charge, but you may not sell it
-or distribute modified versions. See [LICENSE](LICENSE).
+DeltaScope is licensed under the **GNU Affero General Public License v3.0**
+(AGPL-3.0). You are free to use, modify, and distribute it, provided that
+derivative works — including software offered over a network — are released
+under the same license and their source made available. See [LICENSE](LICENSE).
